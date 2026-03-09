@@ -1,19 +1,24 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { View, Text, StyleSheet, Image, Alert } from "react-native";
 import CustomInput from "../components/CustomInput";
 import CustomButton from "../components/CustomButton";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useNavigation } from "@react-navigation/native";
-
+import { AuthContext } from "../context/AuthContext";
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  
-const handleLogin = () => {
 
+  const { login } = useContext(AuthContext);
+
+  const handleLogin = () => {
     if (!email || !password) {
       Alert.alert("Campos obligatorios", "Por favor complete todos los campos.");
+      return;
+    }
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert("Correo inválido", "Ingrese un correo electrónico válido.");
       return;
     }
 
@@ -22,19 +27,17 @@ const handleLogin = () => {
       return;
     }
 
-    // Simulación de login exitoso
+    login(email);
     navigation.replace("Tabs");
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        
-        <Image 
-          source={require("../../assets/plane.png")} 
+        <Image
+          source={require("../../assets/plane.png")}
           style={styles.logo}
           resizeMode="contain"
-          
         />
 
         <Text style={styles.title}>SkyReserve</Text>
@@ -54,11 +57,7 @@ const handleLogin = () => {
           typeInput="password"
         />
 
-        <CustomButton
-          title="Iniciar Sesión"
-          onClick={handleLogin}
-        />
-
+        <CustomButton title="Iniciar Sesión" onClick={handleLogin} />
       </View>
     </View>
   );
@@ -83,7 +82,6 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     marginBottom: 10,
-
   },
   title: {
     fontSize: 24,

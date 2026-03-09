@@ -1,0 +1,12 @@
+{
+  "origins": [
+    { "id": "SAP", "name": "San Pedro Sula", "code": "SAP" },
+    { "id": "TGU", "name": "Tegucigalpa", "code": "TGU" }
+  ],
+  "destinations": [
+    { "id": "MIA", "name": "Miami", "country": "Estados Unidos", "basePrice": 320 },
+    { "id": "MAD", "name": "Madrid", "country": "España", "basePrice": 850 },
+    { "id": "MEX", "name": "Ciudad de México", "country": "México", "basePrice": 400 },
+    { "id": "BOG", "name": "Bogotá", "country": "Colombia", "basePrice": 300 }
+  ]
+}
