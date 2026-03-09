@@ -1,8 +1,26 @@
-import { View, Text, StyleSheet } from "react-native";
+/*import { View, Text, StyleSheet, Alert } from "react-native";
+import CustomButton from "../components/CustomButton";
+import { useContext } from "react";
+import { ReservationContext } from "../context/ReservationContext";
 
 export default function FlightDetailScreen({ route }: any) {
 
   const { origin, destination, price } = route.params;
+  const { addReservation } = useContext(ReservationContext);
+
+  const handleReserve = () => {
+
+  addReservation({
+    origin,
+    destination,
+    price
+  });
+
+  Alert.alert(
+    "Reserva confirmada",
+    `Vuelo reservado de ${origin} a ${destination}`
+  );
+};
 
   return (
     <View style={styles.container}>
@@ -12,6 +30,13 @@ export default function FlightDetailScreen({ route }: any) {
       <Text style={styles.info}>Origen: {origin}</Text>
       <Text style={styles.info}>Destino: {destination}</Text>
       <Text style={styles.info}>Precio: {price}</Text>
+
+      <View style={{ marginTop: 30 }}>
+        <CustomButton
+          title="Reservar vuelo"
+          onClick={handleReserve}
+        />
+      </View>
 
     </View>
   );
@@ -35,3 +60,5 @@ const styles = StyleSheet.create({
     marginVertical:5
   }
 });
+*/
+
