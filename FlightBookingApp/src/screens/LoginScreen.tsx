@@ -1,14 +1,14 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { View, Text, StyleSheet, Image, Alert } from "react-native";
 import CustomInput from "../components/CustomInput";
 import CustomButton from "../components/CustomButton";
-import { AuthContext } from "../context/AuthContext";
+import { useAppDispatch } from "../redux/hooks";
+import { login } from "../redux/slices/authSlice";
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  const { login } = useContext(AuthContext);
+  const dispatch = useAppDispatch();
 
   const handleLogin = () => {
     if (!email || !password) {
@@ -27,7 +27,7 @@ export default function LoginScreen({ navigation }: any) {
       return;
     }
 
-    login(email);
+    dispatch(login(email));
     navigation.replace("Tabs");
   };
 

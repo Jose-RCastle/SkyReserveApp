@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, Alert } from "react-native";
 import { useContext, useState } from "react";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { ReservationContext } from "../context/ReservationContext";
+//import { ReservationContext } from "../context/ReservationContext";
 
 // Hooks
 import { useFlightSearch } from "../hooks/useFlightSearch";
@@ -17,6 +17,9 @@ import DestinationModal from "./DestinationModal";
 import ConfirmationModal from "./ConfirmationModal";
 import OriginModal from "./OriginModal";
 
+import { useAppDispatch } from "../redux/hooks";
+import { addReservation } from "../redux/slices/reservationSlice";
+
 // Datos
 const flightData = require("../data/flights.json") as any;
 
@@ -26,7 +29,9 @@ export default function HomeScreen() {
 
   const originLabel = `${selectedOrigin.name} (${selectedOrigin.code})`;
 
-  const { addReservation } = useContext(ReservationContext);
+  //const { addReservation } = useContext(ReservationContext);
+
+  const dispatch = useAppDispatch();
 
   const flightSearch = useFlightSearch();
   const passengers = usePassengers();
@@ -153,7 +158,9 @@ export default function HomeScreen() {
           onConfirm={() => {
             const destination = flightSearch.selectedDestination!;
 
+          dispatch(
             addReservation({
+              id: Date.now().toString(),
               origin: originLabel,
               destination: destination.id,
               destinationName: destination.name,
@@ -164,7 +171,9 @@ export default function HomeScreen() {
                   : undefined,
               passengers: passengers.passengers,
               totalPrice: passengers.calculateTotalPrice(destination.basePrice),
-            });
+              reservationDate: new Date().toLocaleDateString("es-ES"),
+            })
+          );
 
             modals.setShowConfirmationModal(false);
             Alert.alert("¡Éxito!", "Vuelo reservado correctamente");
