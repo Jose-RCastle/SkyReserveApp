@@ -1,26 +1,28 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 
 type Props = {
-  flightType: 'roundtrip' | 'oneway';
-  onSelect: (type: 'roundtrip' | 'oneway') => void;
+  flightType: "roundtrip" | "oneway";
+  onSelect: (type: "roundtrip" | "oneway") => void;
 };
 
 export const FlightTypeSelector = ({ flightType, onSelect }: Props) => (
   <View style={styles.container}>
     <TouchableOpacity
-      style={[styles.button, flightType === 'roundtrip' && styles.active]}
-      onPress={() => onSelect('roundtrip')}
+      style={[styles.button, flightType === "roundtrip" && styles.active]}
+      onPress={() => onSelect("roundtrip")}
+      activeOpacity={0.85}
     >
-      <Text style={[styles.text, flightType === 'roundtrip' && styles.textActive]}>
+      <Text style={[styles.text, flightType === "roundtrip" && styles.textActive]}>
         Ida y vuelta
       </Text>
     </TouchableOpacity>
     <TouchableOpacity
-      style={[styles.button, flightType === 'oneway' && styles.active]}
-      onPress={() => onSelect('oneway')}
+      style={[styles.button, flightType === "oneway" && styles.active]}
+      onPress={() => onSelect("oneway")}
+      activeOpacity={0.85}
     >
-      <Text style={[styles.text, flightType === 'oneway' && styles.textActive]}>
-        Sencillo
+      <Text style={[styles.text, flightType === "oneway" && styles.textActive]}>
+        Vuelo de ida
       </Text>
     </TouchableOpacity>
   </View>
@@ -28,27 +30,32 @@ export const FlightTypeSelector = ({ flightType, onSelect }: Props) => (
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 8,
-    marginBottom: 20,
+    flexDirection: "row",
+    backgroundColor: "#f1f1f5",
+    borderRadius: 18,
+    marginBottom: 18,
     padding: 4,
   },
   button: {
     flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 6,
+    paddingVertical: 15,
+    alignItems: "center",
+    borderRadius: 15,
   },
   active: {
-    backgroundColor: '#2e4566',
+    backgroundColor: "#ffffff",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
   text: {
     fontSize: 16,
-    color: '#666',
-    fontWeight: '500',
+    color: "#747b88",
+    fontWeight: "600",
   },
   textActive: {
-    color: 'white',
+    color: "#1b2330",
   },
 });

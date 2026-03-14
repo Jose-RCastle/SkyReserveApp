@@ -34,11 +34,7 @@ export default function LoginScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Image
-          source={require("../../assets/plane.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        <Image source={require("../../assets/plane.png")} style={styles.logo} resizeMode="contain" />
 
         <Text style={styles.title}>SkyReserve</Text>
         <Text style={styles.subtitle}>Sistema de Reservación de Vuelos</Text>
@@ -57,7 +53,9 @@ export default function LoginScreen({ navigation }: any) {
           typeInput="password"
         />
 
-        <CustomButton title="Iniciar Sesión" onClick={handleLogin} />
+        <View style={styles.buttonWrap}>
+          <CustomButton title="Iniciar Sesión" onClick={handleLogin} />
+        </View>
       </View>
     </View>
   );
@@ -68,29 +66,39 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#e6f0fa",
+    backgroundColor: "#eaf1fb",
+    paddingHorizontal: 20,
   },
   card: {
-    width: "85%",
+    width: "88%",
     backgroundColor: "white",
-    borderRadius: 15,
-    padding: 20,
+    borderRadius: 24,
+    paddingVertical: 28,
     alignItems: "center",
     elevation: 5,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
   },
   logo: {
-    width: 120,
-    height: 120,
-    marginBottom: 10,
+    width: 118,
+    height: 118,
+    marginBottom: 6,
   },
   title: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#2e4566",
+    fontWeight: "800",
+    color: "#2e4a72",
   },
   subtitle: {
     fontSize: 14,
     marginBottom: 20,
-    color: "#555",
+    color: "#636b78",
+  },
+  buttonWrap: {
+    width: "100%",
+    paddingHorizontal: 25,
+    marginTop: 6,
   },
 });

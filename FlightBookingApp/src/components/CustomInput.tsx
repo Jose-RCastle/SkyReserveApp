@@ -3,111 +3,104 @@ import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useState } from "react";
 
 type Props = {
-    placeholder: string,
-    onChange: (text: string) => void;
-    value: string;
-    typeInput?: 'password' | 'email' | 'number' | 'text';
-    error?: string; //para errores externos
-}
+  placeholder: string;
+  onChange: (text: string) => void;
+  value: string;
+  typeInput?: "password" | "email" | "number" | "text";
+  error?: string;
+};
 
-export default function CustomInput ({
-    placeholder, 
-    onChange, 
-    value, 
-    typeInput = "text",
-    error: externalError //recibimos error del padre
+export default function CustomInput({
+  placeholder,
+  onChange,
+  value,
+  typeInput = "text",
+  error: externalError,
 }: Props) {
-    const [isSecureText, setIsSecureText] = useState(typeInput === 'password'); 
-    const isPasswordField = typeInput === 'password';
+  const [isSecureText, setIsSecureText] = useState(typeInput === "password");
+  const isPasswordField = typeInput === "password";
 
-    const icon : typeof MaterialIcons["name"]|undefined =
-        typeInput === "email" ? "email" : 
-            typeInput === "password" ? "lock" : undefined
+  const icon: typeof MaterialIcons.name | undefined =
+    typeInput === "email" ? "email" : typeInput === "password" ? "lock" : undefined;
 
-    const keyboardType: KeyboardTypeOptions = 
-        typeInput === "email" ? "email-address" :
-            typeInput === "number" ? "numeric" : "default"   
+  const keyboardType: KeyboardTypeOptions =
+    typeInput === "email" ? "email-address" : typeInput === "number" ? "numeric" : "default";
 
-    //validaciones internas del componente
-    const getInternalError = () => {
-        if (value.length === 0) return null; //no muestra error si está vacío
+  const getInternalError = () => {
+    if (value.length === 0) return null;
 
-        if (typeInput === "email") {
-            //esta validación es solo informativa
-            const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-            if (!emailRegex.test(value)) {
-                return 'Formato de correo incorrecto';
-            }
-        }
-        
-        if (typeInput === "password" && value.length < 6) {
-            return 'Mínimo 6 caracteres';
-        }
-        
-        return null;
-    };
-    
-    //pioridad: error externo (del padre) > error interno
-    const errorToShow = externalError || getInternalError();
-    
-    return(
-        <View style={styles.wrapper}>
-            <View style={[styles.inputContainer, errorToShow && styles.inputError]}>
-                <MaterialIcons 
-                    name={icon as any}
-                    size={20}
-                    color={"#000000"}
-                />
-                <TextInput 
-                    style={styles.input}
-                    placeholder={placeholder}
-                    value={value} 
-                    onChangeText={(text) => {
-                        onChange(text);
-                        //no limpiamos errores internos aquí, eso lo hace el padre
-                    }}
-                    secureTextEntry={isSecureText}
-                    keyboardType={keyboardType}
-                />
+    if (typeInput === "email") {
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(value)) {
+        return "Formato de correo incorrecto";
+      }
+    }
 
-                { isPasswordField && 
-                    <TouchableOpacity onPress={()=>{setIsSecureText(!isSecureText)}}>
-                        <Ionicons name={isSecureText ? "eye" : "eye-off"}  size={20} />
-                    </TouchableOpacity> 
-                }
-            </View>
-           {errorToShow && <Text style={styles.errorText}> {errorToShow} </Text> }
-        </View>
-    );
+    if (typeInput === "password" && value.length < 6) {
+      return "Mínimo 6 caracteres";
+    }
+
+    return null;
+  };
+
+  const errorToShow = externalError || getInternalError();
+
+  return (
+    <View style={styles.wrapper}>
+      <View style={[styles.inputContainer, errorToShow && styles.inputError]}>
+        {icon && <MaterialIcons name={icon as any} size={20} color="#7f8796" />}
+        <TextInput
+          style={styles.input}
+          placeholder={placeholder}
+          placeholderTextColor="#9aa1ae"
+          value={value}
+          onChangeText={onChange}
+          secureTextEntry={isSecureText}
+          keyboardType={keyboardType}
+          autoCapitalize="none"
+        />
+
+        {isPasswordField && (
+          <TouchableOpacity onPress={() => setIsSecureText(!isSecureText)}>
+            <Ionicons name={isSecureText ? "eye-off" : "eye"} size={20} color="#7f8796" />
+          </TouchableOpacity>
+        )}
+      </View>
+      {errorToShow && <Text style={styles.errorText}>{errorToShow}</Text>}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    wrapper:{
-        marginBottom: 15,
-        width: "100%",
-        paddingHorizontal: 25,
-    },
-    inputContainer:{
-        flexDirection:'row',
-        alignItems:'center',
-        borderWidth: 1,
-        borderColor: "#ccc",
-        borderRadius: 8,
-        paddingHorizontal: 13,
-        backgroundColor: 'white',
-    },
-    input:{
-        paddingHorizontal:10,
-        flex: 1,
-    },
-    inputError:{
-        borderColor: 'red',
-        borderWidth: 2,
-    },
-    errorText:{
-        color: 'red',
-        fontSize: 12,
-        marginTop: 5,
-        marginLeft: 10,
-    }
+  wrapper: {
+    marginBottom: 15,
+    width: "100%",
+    paddingHorizontal: 25,
+  },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#dde2ea",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    minHeight: 52,
+    backgroundColor: "white",
+  },
+  input: {
+    paddingHorizontal: 10,
+    flex: 1,
+    fontSize: 16,
+    color: "#1f2430",
+  },
+  inputError: {
+    borderColor: "#d62839",
+    borderWidth: 1.5,
+  },
+  errorText: {
+    color: "#d62839",
+    fontSize: 12,
+    marginTop: 6,
+    marginLeft: 10,
+  },
 });
