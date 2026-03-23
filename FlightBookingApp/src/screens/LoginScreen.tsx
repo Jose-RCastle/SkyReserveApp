@@ -4,30 +4,35 @@ import CustomInput from "../components/CustomInput";
 import CustomButton from "../components/CustomButton";
 import { useAppDispatch } from "../redux/hooks";
 import { login } from "../redux/slices/authSlice";
+import { supabase } from "../lib/supabase";
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const dispatch = useAppDispatch();
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Campos obligatorios", "Por favor complete todos los campos.");
       return;
     }
 
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert("Correo inválido", "Ingrese un correo electrónico válido.");
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      Alert.alert("Error de autenticación", error.message);
       return;
     }
 
-    if (password.length < 6) {
-      Alert.alert("Contraseña inválida", "Debe tener al menos 6 caracteres.");
+    if (!data.user) {
+      Alert.alert("Error", "No se pudo iniciar sesión.");
       return;
     }
 
-    dispatch(login(email));
+    dispatch(login(data.user.email || email));
     navigation.replace("Tabs");
   };
 

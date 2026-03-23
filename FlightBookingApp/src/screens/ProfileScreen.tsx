@@ -3,15 +3,17 @@ import { Ionicons } from "@expo/vector-icons";
 import CustomButton from "../components/CustomButton";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import { logout } from "../redux/slices/authSlice";
+import { supabase } from "../lib/supabase"
 
 export default function ProfileScreen({ navigation }: any) {
   const dispatch = useAppDispatch();
   const userEmail = useAppSelector((state) => state.auth.userEmail);
 
-  const handleLogout = () => {
-    dispatch(logout());
-    navigation.replace("Login");
-  };
+  const handleLogout = async () => {
+  await supabase.auth.signOut()
+  dispatch(logout())
+  navigation.replace("Login")
+}
 
   return (
     <View style={styles.container}>

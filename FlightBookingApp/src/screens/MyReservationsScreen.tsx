@@ -1,10 +1,24 @@
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppSelector } from "../redux/hooks";
+import { useEffect } from "react"
+import { supabase } from "../lib/supabase"
 
 export default function MyReservationsScreen() {
   const reservations = useAppSelector((state) => state.reservations.reservations);
 
+  useEffect(() => {
+  loadReservations()
+}, [])
+
+const loadReservations = async () => {
+
+  const { data } = await supabase
+    .from("reservations")
+    .select("*")
+
+  console.log("Reservas DB:", data)
+}
   const getPassengerText = (passengers: any) => {
     const { adults, children, infants } = passengers;
     const total = adults + children + infants;

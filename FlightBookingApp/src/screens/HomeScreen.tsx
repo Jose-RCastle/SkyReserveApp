@@ -17,6 +17,7 @@ import OriginModal from "./OriginModal";
 
 import { useAppDispatch } from "../redux/hooks";
 import { addReservation } from "../redux/slices/reservationSlice";
+import { supabase } from "../lib/supabase";
 
 const flightData = require("../data/flights.json") as any;
 
@@ -89,6 +90,75 @@ export default function HomeScreen() {
     Alert.alert("Destino seleccionado", `${offer.name} fue agregado al formulario.`);
   };
 
+  const handleConfirmReservation = async () => {
+    try {
+      const destination = flightSearch.selectedDestination;
+
+      if (!destination) {
+        Alert.alert("Destino requerido", "Selecciona un destino antes de reservar.");
+        return;
+      }
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        Alert.alert("Error de sesión", userError.message);
+        return;
+      }
+
+      if (!user) {
+        Alert.alert("Sesión no encontrada", "Debes iniciar sesión para reservar.");
+        return;
+      }
+
+      const reservationData = {
+        user_email: user.email ?? "",
+        origin: originLabel,
+        destination: destination.id,
+        destination_name: destination.name,
+        depart_date: formatDate(flightSearch.departDate),
+        return_date:
+          flightSearch.flightType === "roundtrip"
+            ? formatDate(flightSearch.returnDate)
+            : null,
+        adults: passengers.passengers.adults,
+        children: passengers.passengers.children,
+        infants: passengers.passengers.infants,
+        total_price: passengers.calculateTotalPrice(destination.basePrice),
+        reservation_date: new Date().toLocaleDateString("es-ES"),
+      };
+
+      const { error: insertError } = await supabase.from("reservations").insert(reservationData);
+
+      if (insertError) {
+        Alert.alert("Error al guardar", insertError.message);
+        return;
+      }
+
+      dispatch(
+        addReservation({
+          id: Date.now().toString(),
+          origin: originLabel,
+          destination: destination.id,
+          destinationName: destination.name,
+          departDate: reservationData.depart_date,
+          returnDate: reservationData.return_date ?? undefined,
+          passengers: passengers.passengers,
+          totalPrice: reservationData.total_price,
+          reservationDate: reservationData.reservation_date,
+        })
+      );
+
+      modals.setShowConfirmationModal(false);
+      Alert.alert("¡Éxito!", "Vuelo reservado correctamente");
+    } catch (error: any) {
+      Alert.alert("Error inesperado", error?.message || "No se pudo completar la reserva.");
+    }
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.hero}>
@@ -96,17 +166,6 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.searchCard}>
-        <View style={styles.productTabs}>
-          <View style={[styles.productTab, styles.productTabActive]}>
-            <Ionicons name="airplane" size={20} color="#ffffff" />
-            <Text style={styles.productTabActiveText}>Vuelos</Text>
-          </View>
-          <View style={styles.productTab}>
-            <Ionicons name="bed-outline" size={20} color="#1f6ed4" />
-            <Text style={styles.productTabText}>Hoteles</Text>
-          </View>
-        </View>
-
         <FlightTypeSelector flightType={flightSearch.flightType} onSelect={flightSearch.setFlightType} />
 
         <InputField
@@ -171,7 +230,9 @@ export default function HomeScreen() {
             </View>
             <View style={styles.offerOverlay}>
               <Text style={styles.offerTitle}>{offer.name}</Text>
-              <Text style={styles.offerOrigin}>Salida desde {selectedOrigin.name} ({selectedOrigin.code})</Text>
+              <Text style={styles.offerOrigin}>
+                Salida desde {selectedOrigin.name} ({selectedOrigin.code})
+              </Text>
             </View>
             <Text style={styles.offerPrice}>Precio de vuelta desde ${offer.basePrice}</Text>
           </TouchableOpacity>
@@ -224,40 +285,18 @@ export default function HomeScreen() {
         <ConfirmationModal
           visible={modals.showConfirmationModal}
           onClose={() => modals.setShowConfirmationModal(false)}
-          onConfirm={() => {
-            const destination = flightSearch.selectedDestination!;
-
-            dispatch(
-              addReservation({
-                id: Date.now().toString(),
-                origin: originLabel,
-                destination: destination.id,
-                destinationName: destination.name,
-                departDate: formatDate(flightSearch.departDate),
-                returnDate:
-                  flightSearch.flightType === "roundtrip"
-                    ? formatDate(flightSearch.returnDate)
-                    : undefined,
-                passengers: passengers.passengers,
-                totalPrice: passengers.calculateTotalPrice(destination.basePrice),
-                reservationDate: new Date().toLocaleDateString("es-ES"),
-              })
-            );
-
-            modals.setShowConfirmationModal(false);
-            Alert.alert("¡Éxito!", "Vuelo reservado correctamente");
-          }}
+          onConfirm={handleConfirmReservation}
           flightDetails={{
             origin: originLabel,
-            destination: flightSearch.selectedDestination!.id,
-            destinationName: flightSearch.selectedDestination!.name,
+            destination: flightSearch.selectedDestination.id,
+            destinationName: flightSearch.selectedDestination.name,
             departDate: formatDate(flightSearch.departDate),
             returnDate:
               flightSearch.flightType === "roundtrip"
                 ? formatDate(flightSearch.returnDate)
                 : undefined,
             passengers: passengers.passengers,
-            totalPrice: passengers.calculateTotalPrice(flightSearch.selectedDestination!.basePrice),
+            totalPrice: passengers.calculateTotalPrice(flightSearch.selectedDestination.basePrice),
           }}
         />
       )}
@@ -325,36 +364,6 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 },
     elevation: 5,
-  },
-  productTabs: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 18,
-  },
-  productTab: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#cfe0f8",
-    backgroundColor: "#fff",
-  },
-  productTabActive: {
-    backgroundColor: "#1f6ed4",
-    borderColor: "#1f6ed4",
-  },
-  productTabText: {
-    color: "#1f6ed4",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  productTabActiveText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "700",
   },
   buttonContainer: {
     marginTop: 6,
