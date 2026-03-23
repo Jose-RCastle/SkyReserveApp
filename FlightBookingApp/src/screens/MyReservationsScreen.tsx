@@ -11,6 +11,7 @@ export default function MyReservationsScreen() {
   loadReservations()
 }, [])
 
+console.log("Reservas actuales en Redux:", reservations);
 const loadReservations = async () => {
 
   const { data } = await supabase
@@ -100,6 +101,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   screenTitle: {
+    marginTop: 25,
     fontSize: 30,
     fontWeight: "800",
     color: "#111827",

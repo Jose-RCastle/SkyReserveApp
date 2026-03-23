@@ -53,6 +53,7 @@ const styles = StyleSheet.create({
     paddingTop: 24,
   },
   screenTitle: {
+    marginTop: 25,
     fontSize: 30,
     fontWeight: "800",
     color: "#111827",

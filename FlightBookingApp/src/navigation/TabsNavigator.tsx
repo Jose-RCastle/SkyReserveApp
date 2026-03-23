@@ -10,6 +10,8 @@ export default function TabsNavigator() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
+        headerShown: false,
+
         tabBarIcon: ({ color, size }) => {
           let iconName: any;
 
@@ -23,6 +25,7 @@ export default function TabsNavigator() {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
+
         tabBarActiveTintColor: "#2e4566",
         tabBarInactiveTintColor: "gray",
       })}

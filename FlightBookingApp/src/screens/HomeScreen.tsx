@@ -30,10 +30,10 @@ type OfferCard = {
 };
 
 const offerImages = [
-  "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1493558103817-58b2924bce98?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=900&q=80",
+  "https://media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/07/b1/fb/10.jpg",
+  "https://www.kevmrc.com/wp-content/uploads/2021/07/19-famous-landmarks-in-madrid-spain.jpg",
+  "https://tse2.mm.bing.net/th/id/OIP.b4IpjqLjqsKk3F-M3XK57AHaEK?rs=1&pid=ImgDetMain&o=7&rm=3",
+  "https://eventsandsports.com/wp-content/uploads/2023/11/BOGOTA-3.jpg",
 ];
 
 export default function HomeScreen() {
@@ -138,6 +138,7 @@ export default function HomeScreen() {
         return;
       }
 
+      console.log("Datos que se enviarán a Redux:", reservationData);
       dispatch(
         addReservation({
           id: Date.now().toString(),
@@ -151,12 +152,14 @@ export default function HomeScreen() {
           reservationDate: reservationData.reservation_date,
         })
       );
+      console.log("Reserva enviada al estado global con Redux");
 
       modals.setShowConfirmationModal(false);
       Alert.alert("¡Éxito!", "Vuelo reservado correctamente");
     } catch (error: any) {
       Alert.alert("Error inesperado", error?.message || "No se pudo completar la reserva.");
     }
+    
   };
 
   return (
@@ -343,12 +346,13 @@ const styles = StyleSheet.create({
   hero: {
     backgroundColor: "#1f6ed4",
     paddingHorizontal: 20,
-    paddingTop: 26,
+    paddingTop: 41,
     paddingBottom: 92,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
   },
   heroTitle: {
+    marginTop: 17,
     fontSize: 28,
     fontWeight: "800",
     color: "#ffffff",
@@ -356,7 +360,7 @@ const styles = StyleSheet.create({
   searchCard: {
     backgroundColor: "#ffffff",
     marginHorizontal: 16,
-    marginTop: -58,
+    marginTop: -69,
     borderRadius: 28,
     padding: 16,
     shadowColor: "#000",

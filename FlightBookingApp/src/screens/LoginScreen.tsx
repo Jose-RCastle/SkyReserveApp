@@ -11,6 +11,8 @@ export default function LoginScreen({ navigation }: any) {
   const [password, setPassword] = useState("");
   const dispatch = useAppDispatch();
 
+
+  
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Campos obligatorios", "Por favor complete todos los campos.");
@@ -34,6 +36,8 @@ export default function LoginScreen({ navigation }: any) {
 
     dispatch(login(data.user.email || email));
     navigation.replace("Tabs");
+
+    console.log("Usuario guardado en Redux:", email);
   };
 
   return (
