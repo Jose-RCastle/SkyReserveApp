@@ -26,3 +26,41 @@ La aplicación simula un sistema de reservación de vuelos donde el usuario pued
 - Context API para manejo de estado global
 
 ## Estructura del proyecto
+
+SkyReserve/
+src/
+   - components/
+     - CustomButton.tsx
+     - CustomInput.tsx
+     - FlightCard.tsx
+     - FlightTypeSelector.tsx
+     - InputField.tsx
+     - PassengerSelector.tsx
+   - data/ # Datos locales
+     - flights.json
+   - hooks/ # Custom hooks
+     - useFlightSearch.ts
+     - useModals.ts
+     - usePassengers.ts
+   - lib/
+      supabase.ts
+   - navigation/
+     - StackNavigator.tsx
+     - TabsNavigator.tsx
+   - redux/
+     - slices/
+       - authSlice.ts
+       - reservationSlice.ts
+     - hooks.ts
+     - store.ts     
+   - screens/
+     - ConfirmationModal.tsx
+     - DestinationModal.tsx
+     - HomeScreen.tsx
+     - LoginScreen.tsx
+     - MyReservationsScreen.tsx
+     - OriginModal.tsx
+     - ProfileScreen.tsx
+   - types/
+   - flight.types.ts
+
