@@ -1,21 +1,30 @@
 import { useState } from "react";
-import { View, Text, StyleSheet, Image, Alert } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  Alert,
+  TouchableOpacity,
+} from "react-native";
 import CustomInput from "../components/CustomInput";
 import CustomButton from "../components/CustomButton";
 import { useAppDispatch } from "../redux/hooks";
 import { login } from "../redux/slices/authSlice";
 import { supabase } from "../lib/supabase";
+import i18n from "../i18n";
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const dispatch = useAppDispatch();
 
-
-  
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Campos obligatorios", "Por favor complete todos los campos.");
+      Alert.alert(
+        i18n.t("requiredFields"),
+        i18n.t("completeAllFields")
+      );
       return;
     }
 
@@ -25,12 +34,12 @@ export default function LoginScreen({ navigation }: any) {
     });
 
     if (error) {
-      Alert.alert("Error de autenticación", error.message);
+      Alert.alert(i18n.t("authError"), error.message);
       return;
     }
 
     if (!data.user) {
-      Alert.alert("Error", "No se pudo iniciar sesión.");
+      Alert.alert(i18n.t("authError"), i18n.t("loginFailed"));
       return;
     }
 
@@ -43,28 +52,39 @@ export default function LoginScreen({ navigation }: any) {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Image source={require("../../assets/plane.png")} style={styles.logo} resizeMode="contain" />
+        <Image
+          source={require("../../assets/plane.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
 
-        <Text style={styles.title}>SkyReserve</Text>
-        <Text style={styles.subtitle}>Sistema de Reservación de Vuelos</Text>
+        <Text style={styles.title}>{i18n.t("loginTitle")}</Text>
+        <Text style={styles.subtitle}>{i18n.t("loginSubtitle")}</Text>
 
         <CustomInput
-          placeholder="Ingrese su correo"
+          placeholder={i18n.t("emailPlaceholder")}
           value={email}
           onChange={setEmail}
           typeInput="email"
         />
 
         <CustomInput
-          placeholder="Ingrese su contraseña"
+          placeholder={i18n.t("passwordPlaceholder")}
           value={password}
           onChange={setPassword}
           typeInput="password"
         />
 
         <View style={styles.buttonWrap}>
-          <CustomButton title="Iniciar Sesión" onClick={handleLogin} />
+          <CustomButton title={i18n.t("loginButton")} onClick={handleLogin} />
         </View>
+
+        <TouchableOpacity onPress={() => navigation.navigate("Register")}>
+          <Text style={styles.registerText}>
+            {i18n.t("noAccount")}{" "}
+            <Text style={styles.registerLink}>{i18n.t("createAccount")}</Text>
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -109,5 +129,14 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingHorizontal: 25,
     marginTop: 6,
+  },
+  registerText: {
+    marginTop: 18,
+    fontSize: 14,
+    color: "#636b78",
+  },
+  registerLink: {
+    color: "#ec0b7b",
+    fontWeight: "700",
   },
 });

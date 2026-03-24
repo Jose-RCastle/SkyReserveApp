@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, ScrollView, Alert, Image, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, Alert, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { useState } from "react";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,6 +18,8 @@ import OriginModal from "./OriginModal";
 import { useAppDispatch } from "../redux/hooks";
 import { addReservation } from "../redux/slices/reservationSlice";
 import { supabase } from "../lib/supabase";
+import i18n from "../i18n";
+
 
 const flightData = require("../data/flights.json") as any;
 
@@ -65,12 +67,18 @@ export default function HomeScreen() {
     const total = adults + children + infants;
 
     if (total === 0) {
-      Alert.alert("Pasajeros requeridos", "Debes seleccionar al menos un pasajero.");
+      Alert.alert(
+        i18n.t("requiredPassengers"),
+        i18n.t("selectAtLeastOnePassenger")
+      );
       return false;
     }
 
     if (adults < 1) {
-      Alert.alert("Adulto requerido", "Debe haber al menos un adulto en la reserva.");
+      Alert.alert(
+        i18n.t("requiredAdult"),
+        i18n.t("atLeastOneAdult")
+      );
       return false;
     }
 
@@ -87,7 +95,10 @@ export default function HomeScreen() {
 
   const handleOfferPress = (offer: OfferCard) => {
     flightSearch.setSelectedDestination(offer);
-    Alert.alert("Destino seleccionado", `${offer.name} fue agregado al formulario.`);
+    Alert.alert(
+      i18n.t("destinationSelected"),
+      `${offer.name} ${i18n.t("destinationAddedToForm")}`
+    );
   };
 
   const handleConfirmReservation = async () => {
@@ -95,7 +106,10 @@ export default function HomeScreen() {
       const destination = flightSearch.selectedDestination;
 
       if (!destination) {
-        Alert.alert("Destino requerido", "Selecciona un destino antes de reservar.");
+        Alert.alert(
+          i18n.t("destinationRequired"),
+          i18n.t("selectDestinationBeforeBooking")
+        );
         return;
       }
 
@@ -105,12 +119,15 @@ export default function HomeScreen() {
       } = await supabase.auth.getUser();
 
       if (userError) {
-        Alert.alert("Error de sesión", userError.message);
+        Alert.alert(i18n.t("sessionError"), userError.message);
         return;
       }
 
       if (!user) {
-        Alert.alert("Sesión no encontrada", "Debes iniciar sesión para reservar.");
+        Alert.alert(
+          i18n.t("sessionNotFound"),
+          i18n.t("mustLoginToBook")
+        );
         return;
       }
 
@@ -131,14 +148,15 @@ export default function HomeScreen() {
         reservation_date: new Date().toLocaleDateString("es-ES"),
       };
 
-      const { error: insertError } = await supabase.from("reservations").insert(reservationData);
+      const { error: insertError } = await supabase
+        .from("reservations")
+        .insert(reservationData);
 
       if (insertError) {
-        Alert.alert("Error al guardar", insertError.message);
+        Alert.alert(i18n.t("saveError"), insertError.message);
         return;
       }
 
-      console.log("Datos que se enviarán a Redux:", reservationData);
       dispatch(
         addReservation({
           id: Date.now().toString(),
@@ -152,42 +170,46 @@ export default function HomeScreen() {
           reservationDate: reservationData.reservation_date,
         })
       );
-      console.log("Reserva enviada al estado global con Redux");
 
       modals.setShowConfirmationModal(false);
-      Alert.alert("¡Éxito!", "Vuelo reservado correctamente");
+      Alert.alert(i18n.t("success"), i18n.t("flightBookedSuccessfully"));
     } catch (error: any) {
-      Alert.alert("Error inesperado", error?.message || "No se pudo completar la reserva.");
+      Alert.alert(
+        i18n.t("unexpectedError"),
+        error?.message || i18n.t("reservationCouldNotBeCompleted")
+      );
     }
-    
   };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.hero}>
-        <Text style={styles.heroTitle}>Encuentra con AppReserve</Text>
+        <Text style={styles.heroTitle}>{i18n.t("homeHeroTitle")}</Text>
       </View>
 
       <View style={styles.searchCard}>
-        <FlightTypeSelector flightType={flightSearch.flightType} onSelect={flightSearch.setFlightType} />
+        <FlightTypeSelector
+          flightType={flightSearch.flightType}
+          onSelect={flightSearch.setFlightType}
+        />
 
         <InputField
-          label="Origen"
+          label={i18n.t("origin")}
           value={originLabel}
           onPress={() => setShowOriginModal(true)}
           icon="airplane-outline"
         />
 
         <InputField
-          label="Destino"
+          label={i18n.t("destination")}
           value={flightSearch.selectedDestination?.name ?? ""}
           onPress={() => modals.setShowDestinationModal(true)}
           icon="search-outline"
-          placeholder="Selecciona el destino"
+          placeholder={i18n.t("selectDestination")}
         />
 
         <InputField
-          label="Salida"
+          label={i18n.t("departure")}
           value={formatDate(flightSearch.departDate)}
           onPress={() => modals.setShowDepartPicker(true)}
           icon="calendar-outline"
@@ -195,7 +217,7 @@ export default function HomeScreen() {
 
         {flightSearch.flightType === "roundtrip" && (
           <InputField
-            label="Regreso"
+            label={i18n.t("return")}
             value={formatDate(flightSearch.returnDate)}
             onPress={() => modals.setShowReturnPicker(true)}
             icon="calendar-outline"
@@ -203,20 +225,24 @@ export default function HomeScreen() {
         )}
 
         <InputField
-          label="Pasajeros"
+          label={i18n.t("passengers")}
           value={passengers.getPassengerText()}
           onPress={() => modals.setShowPassengerModal(true)}
           icon="people-outline"
         />
 
         <View style={styles.buttonContainer}>
-          <CustomButton title="Buscar" onClick={handleSearch} variant="primary" />
+          <CustomButton
+            title={i18n.t("search")}
+            onClick={handleSearch}
+            variant="primary"
+          />
         </View>
       </View>
 
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Ofertas del día</Text>
-        <Text style={styles.sectionSubtitle}>Nueva inspiración diaria. ¡Atrápala!</Text>
+        <Text style={styles.sectionTitle}>{i18n.t("dailyOffers")}</Text>
+        <Text style={styles.sectionSubtitle}>{i18n.t("dailyInspiration")}</Text>
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.offersRow}>
@@ -234,31 +260,37 @@ export default function HomeScreen() {
             <View style={styles.offerOverlay}>
               <Text style={styles.offerTitle}>{offer.name}</Text>
               <Text style={styles.offerOrigin}>
-                Salida desde {selectedOrigin.name} ({selectedOrigin.code})
+                {i18n.t("departureFrom")} {selectedOrigin.name} ({selectedOrigin.code})
               </Text>
             </View>
-            <Text style={styles.offerPrice}>Precio de vuelta desde ${offer.basePrice}</Text>
+            <Text style={styles.offerPrice}>
+              {i18n.t("roundTripPriceFrom")} ${offer.basePrice}
+            </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
       <View style={styles.featuresSection}>
-        <Text style={styles.featuresTitle}>Viaja a tu manera</Text>
+        <Text style={styles.featuresTitle}>{i18n.t("travelYourWay")}</Text>
         <Text style={styles.featuresSubtitle}>
-          Escapadas, vacaciones y vuelos al mejor precio en un solo lugar.
+          {i18n.t("travelYourWaySubtitle")}
         </Text>
 
         <View style={styles.featuresGrid}>
           <View style={styles.featureItem}>
             <Ionicons name="pricetag-outline" size={28} color="#1f6ed4" />
-            <Text style={styles.featureHeading}>Mejor precio</Text>
-            <Text style={styles.featureText}>Opciones cómodas para que reserves sin complicarte.</Text>
+            <Text style={styles.featureHeading}>{i18n.t("bestPrice")}</Text>
+            <Text style={styles.featureText}>
+              {i18n.t("bestPriceDescription")}
+            </Text>
           </View>
 
           <View style={styles.featureItem}>
             <Ionicons name="location-outline" size={28} color="#1f6ed4" />
-            <Text style={styles.featureHeading}>Destinos inspiradores</Text>
-            <Text style={styles.featureText}>Explora lugares disponibles saliendo desde tu origen favorito.</Text>
+            <Text style={styles.featureHeading}>{i18n.t("inspiringDestinations")}</Text>
+            <Text style={styles.featureText}>
+              {i18n.t("inspiringDestinationsDescription")}
+            </Text>
           </View>
         </View>
       </View>

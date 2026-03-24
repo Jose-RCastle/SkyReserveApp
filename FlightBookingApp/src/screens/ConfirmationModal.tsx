@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, Modal } from "react-native";
 import CustomButton from "../components/CustomButton";
+import i18n from "../i18n";
 
 type Props = {
   visible: boolean;
@@ -20,7 +21,12 @@ type Props = {
   };
 };
 
-export default function ConfirmationModal({ visible, onClose, onConfirm, flightDetails }: Props) {
+export default function ConfirmationModal({
+  visible,
+  onClose,
+  onConfirm,
+  flightDetails,
+}: Props) {
   const calculatePassengerCount = () => {
     const { adults, children, infants } = flightDetails.passengers;
     const total = adults + children + infants;
@@ -37,7 +43,7 @@ export default function ConfirmationModal({ visible, onClose, onConfirm, flightD
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
-          <Text style={styles.title}>Resumen de tu vuelo</Text>
+          <Text style={styles.title}>{i18n.t("flightSummaryTitle")}</Text>
 
           <View style={styles.routeContainer}>
             <Text style={styles.route}>{flightDetails.origin}</Text>
@@ -46,30 +52,38 @@ export default function ConfirmationModal({ visible, onClose, onConfirm, flightD
           </View>
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Salida</Text>
+            <Text style={styles.detailLabel}>{i18n.t("departure")}</Text>
             <Text style={styles.detailValue}>{flightDetails.departDate}</Text>
           </View>
 
           {flightDetails.returnDate && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Regreso</Text>
+              <Text style={styles.detailLabel}>{i18n.t("return")}</Text>
               <Text style={styles.detailValue}>{flightDetails.returnDate}</Text>
             </View>
           )}
 
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Pasajeros</Text>
+            <Text style={styles.detailLabel}>{i18n.t("passengers")}</Text>
             <Text style={styles.detailValue}>{calculatePassengerCount()}</Text>
           </View>
 
           <View style={styles.priceContainer}>
-            <Text style={styles.priceLabel}>Total</Text>
+            <Text style={styles.priceLabel}>{i18n.t("total")}</Text>
             <Text style={styles.priceValue}>${flightDetails.totalPrice}</Text>
           </View>
 
           <View style={styles.buttonContainer}>
-            <CustomButton title="Reservar vuelo" onClick={onConfirm} variant="primary" />
-            <CustomButton title="Cancelar" onClick={onClose} variant="secondary" />
+            <CustomButton
+              title={i18n.t("reserveFlight")}
+              onClick={onConfirm}
+              variant="primary"
+            />
+            <CustomButton
+              title={i18n.t("cancelButton")}
+              onClick={onClose}
+              variant="secondary"
+            />
           </View>
         </View>
       </View>

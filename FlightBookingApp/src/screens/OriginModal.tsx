@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, Modal, TouchableOpacity, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import i18n from "../i18n";
 
 type Origin = {
   id: string;
@@ -21,7 +22,7 @@ export default function OriginModal({ visible, onClose, onSelect, origins }: Pro
         <View style={styles.modalContent}>
           <View style={styles.handle} />
           <View style={styles.header}>
-            <Text style={styles.title}>Selecciona tu origen</Text>
+            <Text style={styles.title}>{i18n.t("selectOriginTitle")}</Text>
             <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={24} color="#1f2430" />
             </TouchableOpacity>

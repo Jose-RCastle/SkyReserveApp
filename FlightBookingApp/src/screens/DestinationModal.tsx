@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, Modal, TouchableOpacity, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import i18n from "../i18n";
 
 type Destination = {
   id: string;
@@ -15,14 +16,19 @@ type Props = {
   destinations: Destination[];
 };
 
-export default function DestinationModal({ visible, onClose, onSelect, destinations }: Props) {
+export default function DestinationModal({
+  visible,
+  onClose,
+  onSelect,
+  destinations,
+}: Props) {
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <View style={styles.handle} />
           <View style={styles.header}>
-            <Text style={styles.title}>Selecciona tu destino</Text>
+            <Text style={styles.title}>{i18n.t("selectDestinationTitle")}</Text>
             <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={24} color="#1f2430" />
             </TouchableOpacity>

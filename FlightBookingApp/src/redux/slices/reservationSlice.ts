@@ -30,6 +30,9 @@ const reservationSlice = createSlice({
   name: "reservations",
   initialState,
   reducers: {
+    setReservations: (state, action: PayloadAction<Reservation[]>) => {
+      state.reservations = action.payload;
+    },
     addReservation: (state, action: PayloadAction<Reservation>) => {
       state.reservations.push(action.payload);
     },
@@ -39,5 +42,7 @@ const reservationSlice = createSlice({
   },
 });
 
-export const { addReservation, clearReservations } = reservationSlice.actions;
+export const { setReservations, addReservation, clearReservations } =
+  reservationSlice.actions;
+
 export default reservationSlice.reducer;
