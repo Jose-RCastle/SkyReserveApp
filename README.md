@@ -1,6 +1,6 @@
 # SkyReserve
 
-Aplicación móvil desarrollada con **React Native y TypeScript** como proyecto **Programación Móvil**.
+Aplicación móvil desarrollada con **React Native y TypeScript**.
 
 La aplicación simula un sistema de reservación de vuelos donde el usuario puede buscar destinos, seleccionar fechas y pasajeros, y guardar reservas.
 
