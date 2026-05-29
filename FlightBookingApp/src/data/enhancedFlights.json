@@ -1,0 +1,162 @@
+[
+  {
+    "id": "SR-SAP-MIA-001",
+    "origin": "SAP",
+    "destination": "MIA",
+    "price": 320,
+    "availableSeats": 12,
+    "capacity": 120,
+    "durationMinutes": 150,
+    "airline": "SkyRoute Connect"
+  },
+  {
+    "id": "SR-SAP-MIA-002",
+    "origin": "SAP",
+    "destination": "MIA",
+    "price": 280,
+    "availableSeats": 4,
+    "capacity": 110,
+    "durationMinutes": 155,
+    "airline": "Avianca"
+  },
+  {
+    "id": "SR-SAP-MIA-003",
+    "origin": "SAP",
+    "destination": "MIA",
+    "price": 320,
+    "availableSeats": 0,
+    "capacity": 100,
+    "durationMinutes": 148,
+    "airline": "American Airlines"
+  },
+  {
+    "id": "SR-MIA-MAD-001",
+    "origin": "MIA",
+    "destination": "MAD",
+    "price": 640,
+    "availableSeats": 7,
+    "capacity": 220,
+    "durationMinutes": 515,
+    "airline": "Iberia"
+  },
+  {
+    "id": "SR-MIA-MAD-002",
+    "origin": "MIA",
+    "destination": "MAD",
+    "price": 700,
+    "availableSeats": 2,
+    "capacity": 210,
+    "durationMinutes": 520,
+    "airline": "Air Europa"
+  },
+  {
+    "id": "SR-SAP-PTY-001",
+    "origin": "SAP",
+    "destination": "PTY",
+    "price": 210,
+    "availableSeats": 9,
+    "capacity": 130,
+    "durationMinutes": 125,
+    "airline": "Copa Airlines"
+  },
+  {
+    "id": "SR-SAP-PTY-002",
+    "origin": "SAP",
+    "destination": "PTY",
+    "price": 210,
+    "availableSeats": 0,
+    "capacity": 128,
+    "durationMinutes": 130,
+    "airline": "SkyRoute Connect"
+  },
+  {
+    "id": "SR-PTY-BOG-001",
+    "origin": "PTY",
+    "destination": "BOG",
+    "price": 190,
+    "availableSeats": 5,
+    "capacity": 150,
+    "durationMinutes": 95,
+    "airline": "Copa Airlines"
+  },
+  {
+    "id": "SR-BOG-MAD-001",
+    "origin": "BOG",
+    "destination": "MAD",
+    "price": 620,
+    "availableSeats": 6,
+    "capacity": 230,
+    "durationMinutes": 590,
+    "airline": "Avianca"
+  },
+  {
+    "id": "SR-BOG-MAD-002",
+    "origin": "BOG",
+    "destination": "MAD",
+    "price": 640,
+    "availableSeats": 0,
+    "capacity": 225,
+    "durationMinutes": 600,
+    "airline": "Iberia"
+  },
+  {
+    "id": "SR-TGU-GUA-001",
+    "origin": "TGU",
+    "destination": "GUA",
+    "price": 180,
+    "availableSeats": 8,
+    "capacity": 80,
+    "durationMinutes": 80,
+    "airline": "TAG Airlines"
+  },
+  {
+    "id": "SR-GUA-MEX-001",
+    "origin": "GUA",
+    "destination": "MEX",
+    "price": 210,
+    "availableSeats": 3,
+    "capacity": 140,
+    "durationMinutes": 125,
+    "airline": "Aeroméxico"
+  },
+  {
+    "id": "SR-MEX-MAD-001",
+    "origin": "MEX",
+    "destination": "MAD",
+    "price": 700,
+    "availableSeats": 10,
+    "capacity": 240,
+    "durationMinutes": 645,
+    "airline": "Aeroméxico"
+  },
+  {
+    "id": "SR-MEX-MAD-002",
+    "origin": "MEX",
+    "destination": "MAD",
+    "price": 620,
+    "availableSeats": 1,
+    "capacity": 230,
+    "durationMinutes": 650,
+    "airline": "Iberia"
+  },
+  {
+    "id": "SR-SAP-BOG-001",
+    "origin": "SAP",
+    "destination": "BOG",
+    "price": 300,
+    "availableSeats": 11,
+    "capacity": 150,
+    "durationMinutes": 190,
+    "airline": "Avianca"
+  },
+  {
+    "id": "SR-BOG-MIA-001",
+    "origin": "BOG",
+    "destination": "MIA",
+    "price": 280,
+    "availableSeats": 0,
+    "capacity": 160,
+    "durationMinutes": 220,
+    "airline": "Avianca"
+  }
+]
