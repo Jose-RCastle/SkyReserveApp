@@ -1,0 +1,50 @@
+[
+  {
+    "code": "SAP",
+    "name": "Aeropuerto Internacional Ramón Villeda Morales",
+    "city": "San Pedro Sula",
+    "country": "Honduras"
+  },
+  {
+    "code": "TGU",
+    "name": "Aeropuerto Internacional Toncontín",
+    "city": "Tegucigalpa",
+    "country": "Honduras"
+  },
+  {
+    "code": "MIA",
+    "name": "Miami International Airport",
+    "city": "Miami",
+    "country": "Estados Unidos"
+  },
+  {
+    "code": "MAD",
+    "name": "Aeropuerto Adolfo Suárez Madrid-Barajas",
+    "city": "Madrid",
+    "country": "España"
+  },
+  {
+    "code": "MEX",
+    "name": "Aeropuerto Internacional Benito Juárez",
+    "city": "Ciudad de México",
+    "country": "México"
+  },
+  {
+    "code": "BOG",
+    "name": "Aeropuerto Internacional El Dorado",
+    "city": "Bogotá",
+    "country": "Colombia"
+  },
+  {
+    "code": "PTY",
+    "name": "Aeropuerto Internacional de Tocumen",
+    "city": "Panamá",
+    "country": "Panamá"
+  },
+  {
+    "code": "GUA",
+    "name": "Aeropuerto Internacional La Aurora",
+    "city": "Ciudad de Guatemala",
+    "country": "Guatemala"
+  }
+]
