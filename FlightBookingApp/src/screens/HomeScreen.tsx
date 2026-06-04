@@ -1,5 +1,5 @@
 import { View, Text, ScrollView, Alert, Image, StyleSheet, TouchableOpacity } from "react-native";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -19,6 +19,8 @@ import { useAppDispatch } from "../redux/hooks";
 import { addReservation } from "../redux/slices/reservationSlice";
 import { supabase } from "../lib/supabase";
 import i18n from "../i18n";
+import { findRouteBFS } from "../services/routeService";
+import { searchFlightsByRoute } from "../services/flightSearchService";
 
 
 const flightData = require("../data/flights.json") as any;
@@ -53,6 +55,19 @@ export default function HomeScreen() {
     ...item,
     image: offerImages[index % offerImages.length],
   }));
+
+  const selectedDestinationCode = flightSearch.selectedDestination?.id ?? "";
+
+  const routeSuggestion = useMemo(() => {
+    if (!selectedDestinationCode) return null;
+    return findRouteBFS(selectedOrigin.code, selectedDestinationCode);
+  }, [selectedOrigin.code, selectedDestinationCode]);
+
+  const priceOrderedFlights = useMemo(() => {
+    if (!selectedDestinationCode) return null;
+    return searchFlightsByRoute(selectedOrigin.code, selectedDestinationCode);
+  }, [selectedOrigin.code, selectedDestinationCode]);
+
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("es-ES", {
@@ -240,6 +255,52 @@ export default function HomeScreen() {
         </View>
       </View>
 
+      {flightSearch.selectedDestination && (
+        <View style={styles.smartCard}>
+          <Text style={styles.smartTitle}>SkyRoute DS Inteligente</Text>
+          <Text style={styles.smartSubtitle}>
+            Análisis académico para {selectedOrigin.code} → {selectedDestinationCode}
+          </Text>
+
+          <View style={styles.smartSection}>
+            <Text style={styles.structureTag}>
+              Estructura usada: Grafo | Algoritmo: BFS
+            </Text>
+            <Text style={styles.smartText}>
+              {routeSuggestion?.message ?? "Selecciona origen y destino para sugerir una ruta."}
+            </Text>
+            <Text style={styles.smartResult}>
+              Ruta sugerida: {routeSuggestion && routeSuggestion.route.length > 0
+                ? routeSuggestion.route.join(" → ")
+                : "No disponible"}
+            </Text>
+            <Text style={styles.smartText}>
+              Escalas: {routeSuggestion ? routeSuggestion.stops : 0}
+            </Text>
+          </View>
+
+          <View style={styles.smartSection}>
+            <Text style={styles.structureTag}>
+              Estructura usada: Árbol binario | Recorrido: inOrder
+            </Text>
+            <Text style={styles.smartText}>
+              {priceOrderedFlights?.message ?? "Selecciona destino para ordenar vuelos por precio."}
+            </Text>
+            {priceOrderedFlights && priceOrderedFlights.inOrder.length > 0 ? (
+              priceOrderedFlights.inOrder.slice(0, 3).map((flight) => (
+                <Text key={flight.id} style={styles.smartResult}>
+                  {flight.id}: ${flight.price} | Cupos {flight.availableSeats}/{flight.capacity}
+                </Text>
+              ))
+            ) : (
+              <Text style={styles.smartResult}>
+                No hay vuelos directos simulados para esta ruta.
+              </Text>
+            )}
+          </View>
+        </View>
+      )}
+
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>{i18n.t("dailyOffers")}</Text>
         <Text style={styles.sectionSubtitle}>{i18n.t("dailyInspiration")}</Text>
@@ -403,6 +464,53 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     marginTop: 6,
+  },
+  smartCard: {
+    backgroundColor: "#ffffff",
+    marginHorizontal: 16,
+    marginTop: 18,
+    borderRadius: 24,
+    padding: 18,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  smartTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  smartSubtitle: {
+    fontSize: 14,
+    color: "#636b78",
+    marginBottom: 14,
+  },
+  smartSection: {
+    backgroundColor: "#f8fbff",
+    borderRadius: 18,
+    padding: 14,
+    marginTop: 10,
+  },
+  structureTag: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#1f6ed4",
+    marginBottom: 8,
+  },
+  smartText: {
+    fontSize: 14,
+    color: "#4b5563",
+    lineHeight: 20,
+    marginBottom: 6,
+  },
+  smartResult: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1d2533",
+    marginBottom: 4,
   },
   sectionHeader: {
     marginTop: 26,
