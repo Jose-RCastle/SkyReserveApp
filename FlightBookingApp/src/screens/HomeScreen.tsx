@@ -257,40 +257,65 @@ export default function HomeScreen() {
 
       {flightSearch.selectedDestination && (
         <View style={styles.smartCard}>
-          <Text style={styles.smartTitle}>SkyRoute DS Inteligente</Text>
-          <Text style={styles.smartSubtitle}>
-            Análisis académico para {selectedOrigin.code} → {selectedDestinationCode}
-          </Text>
+          <View style={styles.smartHeader}>
+            <View style={styles.smartIconBox}>
+              <Ionicons name="git-network-outline" size={22} color="#ffffff" />
+            </View>
+            <View style={styles.smartHeaderText}>
+              <Text style={styles.smartTitle}>SkyRoute DS</Text>
+              <Text style={styles.smartSubtitle}>
+                Ruta y precios con estructuras de datos
+              </Text>
+            </View>
+          </View>
 
-          <View style={styles.smartSection}>
-            <Text style={styles.structureTag}>
-              Estructura usada: Grafo | Algoritmo: BFS
-            </Text>
-            <Text style={styles.smartText}>
-              {routeSuggestion?.message ?? "Selecciona origen y destino para sugerir una ruta."}
-            </Text>
-            <Text style={styles.smartResult}>
-              Ruta sugerida: {routeSuggestion && routeSuggestion.route.length > 0
-                ? routeSuggestion.route.join(" → ")
-                : "No disponible"}
-            </Text>
-            <Text style={styles.smartText}>
-              Escalas: {routeSuggestion ? routeSuggestion.stops : 0}
+          <View style={styles.routePill}>
+            <Text style={styles.routePillText}>
+              {selectedOrigin.code} → {selectedDestinationCode}
             </Text>
           </View>
 
           <View style={styles.smartSection}>
             <Text style={styles.structureTag}>
-              Estructura usada: Árbol binario | Recorrido: inOrder
+              Grafo · BFS
             </Text>
-            <Text style={styles.smartText}>
+            <Text style={styles.smartText} numberOfLines={2}>
+              {routeSuggestion?.message ?? "Selecciona origen y destino para sugerir una ruta."}
+            </Text>
+            <View style={styles.smartMetricRow}>
+              <Text style={styles.smartMetricLabel}>Ruta</Text>
+              <Text style={styles.smartMetricValue}>
+                {routeSuggestion && routeSuggestion.route.length > 0
+                  ? routeSuggestion.route.join(" → ")
+                  : "No disponible"}
+              </Text>
+            </View>
+            <View style={styles.smartMetricRow}>
+              <Text style={styles.smartMetricLabel}>Escalas</Text>
+              <Text style={styles.smartMetricValue}>
+                {routeSuggestion ? routeSuggestion.stops : 0}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.smartSection}>
+            <Text style={styles.structureTag}>
+              Árbol binario · inOrder
+            </Text>
+            <Text style={styles.smartText} numberOfLines={2}>
               {priceOrderedFlights?.message ?? "Selecciona destino para ordenar vuelos por precio."}
             </Text>
             {priceOrderedFlights && priceOrderedFlights.inOrder.length > 0 ? (
               priceOrderedFlights.inOrder.slice(0, 3).map((flight) => (
-                <Text key={flight.id} style={styles.smartResult}>
-                  {flight.id}: ${flight.price} | Cupos {flight.availableSeats}/{flight.capacity}
-                </Text>
+                <View key={flight.id} style={styles.flightInsightRow}>
+                  <View style={styles.flightInsightInfo}>
+                    <Text style={styles.flightInsightId}>{flight.id}</Text>
+                    <Text style={styles.flightInsightSeats}>
+                      Cupos {flight.availableSeats}/{flight.capacity}
+                    </Text>
+                  </View>
+                  <Text style={styles.flightInsightPrice}>${flight.price}</Text>
+                </View>
               ))
             ) : (
               <Text style={styles.smartResult}>
@@ -469,48 +494,130 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     marginHorizontal: 16,
     marginTop: 18,
-    borderRadius: 24,
-    padding: 18,
+    borderRadius: 26,
+    padding: 16,
     shadowColor: "#000",
     shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 5 },
     elevation: 3,
+  },
+  smartHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 12,
+  },
+  smartIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    backgroundColor: "#1f6ed4",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  smartHeaderText: {
+    flex: 1,
   },
   smartTitle: {
     fontSize: 20,
     fontWeight: "800",
     color: "#111827",
-    marginBottom: 4,
   },
   smartSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#636b78",
-    marginBottom: 14,
+    lineHeight: 19,
+  },
+  routePill: {
+    alignSelf: "flex-start",
+    backgroundColor: "#fff0f7",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    marginBottom: 4,
+  },
+  routePillText: {
+    color: "#c40868",
+    fontWeight: "800",
+    fontSize: 13,
   },
   smartSection: {
     backgroundColor: "#f8fbff",
     borderRadius: 18,
     padding: 14,
     marginTop: 10,
+    borderWidth: 1,
+    borderColor: "#e8f1ff",
   },
   structureTag: {
-    fontSize: 13,
+    alignSelf: "flex-start",
+    fontSize: 12,
     fontWeight: "800",
     color: "#1f6ed4",
+    backgroundColor: "#eaf3ff",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     marginBottom: 8,
   },
   smartText: {
     fontSize: 14,
     color: "#4b5563",
     lineHeight: 20,
-    marginBottom: 6,
+    marginBottom: 8,
+  },
+  smartMetricRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
+    paddingVertical: 4,
+  },
+  smartMetricLabel: {
+    fontSize: 13,
+    color: "#7b8494",
+    fontWeight: "700",
+  },
+  smartMetricValue: {
+    flex: 1,
+    textAlign: "right",
+    fontSize: 14,
+    color: "#1d2533",
+    fontWeight: "800",
   },
   smartResult: {
     fontSize: 14,
     fontWeight: "700",
     color: "#1d2533",
     marginBottom: 4,
+  },
+  flightInsightRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: "#edf2f7",
+  },
+  flightInsightInfo: {
+    flex: 1,
+  },
+  flightInsightId: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#1d2533",
+  },
+  flightInsightSeats: {
+    marginTop: 2,
+    fontSize: 12,
+    color: "#7b8494",
+  },
+  flightInsightPrice: {
+    color: "#ec0b7b",
+    fontSize: 18,
+    fontWeight: "900",
   },
   sectionHeader: {
     marginTop: 26,

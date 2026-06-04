@@ -218,9 +218,12 @@ export default function MyReservationsScreen() {
         {i18n.t("reservationsTitle")}
       </Text>
 
-      <Text style={styles.structureLabel}>
-        Estructura usada: Lista enlazada para gestión de reservas
-      </Text>
+      <View style={styles.structureBadge}>
+        <Ionicons name="git-branch-outline" size={16} color="#1f6ed4" />
+        <Text style={styles.structureLabel}>
+          Lista enlazada para gestión de reservas
+        </Text>
+      </View>
 
       {reservations.length === 0 ? (
         <View style={styles.emptyCard}>
@@ -324,11 +327,21 @@ const styles = StyleSheet.create({
     color: "#111827",
     marginBottom: 10,
   },
+  structureBadge: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#eaf3ff",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 16,
+  },
   structureLabel: {
     fontSize: 13,
-    fontWeight: "700",
-    color: "#2d5fb2",
-    marginBottom: 16,
+    fontWeight: "800",
+    color: "#1f6ed4",
   },
   emptyCard: {
     backgroundColor: "#ffffff",
