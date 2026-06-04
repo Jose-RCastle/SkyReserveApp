@@ -21,6 +21,12 @@ type Props = {
     routePath?: string[];
     pricingLabel?: string;
     recommendedFlightId?: string;
+    flightSegments?: Array<{
+      label: string;
+      flightId: string;
+      price: number;
+      availableSeats: number;
+    }>;
   };
 };
 
@@ -89,6 +95,17 @@ export default function ConfirmationModal({
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Tarifa</Text>
               <Text style={styles.detailValue}>{flightDetails.pricingLabel}</Text>
+            </View>
+          )}
+
+          {flightDetails.flightSegments && flightDetails.flightSegments.length > 1 && (
+            <View style={styles.segmentBox}>
+              <Text style={styles.segmentTitle}>Segmentos de la ruta</Text>
+              {flightDetails.flightSegments.map((segment) => (
+                <Text key={segment.flightId} style={styles.segmentText}>
+                  {segment.label} · {segment.flightId} · ${segment.price} · {segment.availableSeats} cupos
+                </Text>
+              ))}
             </View>
           )}
 
@@ -171,6 +188,26 @@ const styles = StyleSheet.create({
     color: "#1f2430",
     textAlign: "right",
     flex: 1,
+  },
+  segmentBox: {
+    backgroundColor: "#f8fbff",
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: "#e8f1ff",
+  },
+  segmentTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#2d5fb2",
+    marginBottom: 6,
+  },
+  segmentText: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: "#4b5563",
+    fontWeight: "600",
   },
   priceContainer: {
     flexDirection: "row",

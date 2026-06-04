@@ -57,6 +57,7 @@ export default function HomeScreen() {
   }));
 
   const selectedDestinationCode = flightSearch.selectedDestination?.id ?? "";
+  const totalPassengers = passengers.passengers.adults + passengers.passengers.children + passengers.passengers.infants;
 
   const routeSuggestion = useMemo(() => {
     if (!selectedDestinationCode) return null;
@@ -75,19 +76,25 @@ export default function HomeScreen() {
       selectedOrigin.code,
       selectedDestinationCode,
       routeSuggestion,
-      priceOrderedFlights
+      priceOrderedFlights,
+      totalPassengers
     );
-  }, [priceOrderedFlights, routeSuggestion, selectedDestinationCode, selectedOrigin.code]);
+  }, [priceOrderedFlights, routeSuggestion, selectedDestinationCode, selectedOrigin.code, totalPassengers]);
 
   const reservationTotalPrice = reservationOption
     ? passengers.calculateTotalPrice(reservationOption.basePrice)
     : 0;
 
-  const reservationPricingLabel = reservationOption?.priceSource === "direct-flight"
-    ? `Vuelo directo ${reservationOption.recommendedFlight?.id ?? "recomendado"}`
-    : reservationOption?.priceSource === "estimated-route"
-      ? `Precio estimado por ruta (${reservationOption.stops} escala${reservationOption.stops === 1 ? "" : "s"})`
-      : "Ruta no disponible";
+  const reservationPricingLabel = reservationOption?.canReserve
+    ? `Precio base: $${reservationOption.basePrice} | Total pasajeros: $${reservationTotalPrice}`
+    : "Ruta no disponible";
+
+  const reservationFlightSegments = reservationOption?.selectedFlights.map((flight) => ({
+    label: `${flight.origin} → ${flight.destination}`,
+    flightId: flight.id,
+    price: flight.price,
+    availableSeats: flight.availableSeats,
+  }));
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("es-ES", {
@@ -123,17 +130,17 @@ export default function HomeScreen() {
   const handleSearch = () => {
     if (!validatePassengers()) return;
 
+    if (!flightSearch.handleSearch(flightSearch.selectedDestination)) return;
+
     if (!reservationOption?.canReserve) {
       Alert.alert(
-        "Ruta no disponible",
+        "Sin disponibilidad",
         reservationOption?.message ?? "Selecciona una ruta con vuelos o conexiones disponibles para reservar."
       );
       return;
     }
 
-    if (flightSearch.handleSearch(flightSearch.selectedDestination)) {
-      modals.setShowConfirmationModal(true);
-    }
+    modals.setShowConfirmationModal(true);
   };
 
   const handleOfferPress = (offer: OfferCard) => {
@@ -158,7 +165,7 @@ export default function HomeScreen() {
 
       if (!reservationOption?.canReserve) {
         Alert.alert(
-          "Ruta no disponible",
+          "Sin disponibilidad",
           reservationOption?.message ?? "No se puede completar la reserva porque no hay ruta disponible."
         );
         return;
@@ -339,31 +346,44 @@ export default function HomeScreen() {
               Árbol Binario
             </Text>
             <Text style={styles.smartText} numberOfLines={2}>
-              {priceOrderedFlights?.message ?? "Selecciona destino para ordenar vuelos por precio."}
+              {reservationOption?.message ?? priceOrderedFlights?.message ?? "Selecciona destino para ordenar vuelos por precio."}
             </Text>
-            {priceOrderedFlights && priceOrderedFlights.inOrder.length > 0 ? (
-              priceOrderedFlights.inOrder.slice(0, 3).map((flight) => (
-                <View key={flight.id} style={styles.flightInsightRow}>
-                  <View style={styles.flightInsightInfo}>
-                    <Text style={styles.flightInsightId}>{flight.id}</Text>
-                    <Text style={styles.flightInsightSeats}>
-                      Cupos {flight.availableSeats}/{flight.capacity}
-                    </Text>
-                  </View>
-                  <Text style={styles.flightInsightPrice}>${flight.price}</Text>
+            {reservationOption?.canReserve ? (
+              <>
+                <View style={styles.estimatedRouteBox}>
+                  <Text style={styles.smartResult}>
+                    {reservationOption.priceSource === "direct-flight" ? "Vuelo directo disponible" : "Ruta disponible por escalas"}
+                  </Text>
+                  <Text style={styles.estimatedRouteText}>
+                    Precio base: ${reservationOption.basePrice} · Total pasajeros: ${reservationTotalPrice}
+                  </Text>
                 </View>
-              ))
-            ) : reservationOption?.priceSource === "estimated-route" ? (
-              <View style={styles.estimatedRouteBox}>
-                <Text style={styles.smartResult}>Ruta disponible por escalas</Text>
-                <Text style={styles.estimatedRouteText}>
-                  Precio estimado: ${reservationOption.basePrice} · {reservationOption.stops} escala{reservationOption.stops === 1 ? "" : "s"}
-                </Text>
-              </View>
+                {reservationOption.selectedFlights.map((flight) => (
+                  <View key={flight.id} style={styles.flightInsightRow}>
+                    <View style={styles.flightInsightInfo}>
+                      <Text style={styles.flightInsightId}>
+                        {flight.origin} → {flight.destination} · {flight.id}
+                      </Text>
+                      <Text style={styles.flightInsightSeats}>
+                        Cupos disponibles {flight.availableSeats} · Grupo {totalPassengers}
+                      </Text>
+                    </View>
+                    <Text style={styles.flightInsightPrice}>${flight.price}</Text>
+                  </View>
+                ))}
+              </>
             ) : (
-              <Text style={styles.smartResult}>
-                Sin vuelos directos disponibles.
-              </Text>
+              <View style={styles.unavailableBox}>
+                <Text style={styles.smartResult}>Sin disponibilidad para reservar</Text>
+                <Text style={styles.unavailableText}>
+                  {reservationOption?.message ?? "No hay cupos suficientes para este grupo. Puedes intentar con menos pasajeros o revisar la lista de espera."}
+                </Text>
+                {reservationOption?.unavailableSegments.map((segment) => (
+                  <Text key={segment} style={styles.unavailableSegment}>
+                    Sin cupos: {segment}
+                  </Text>
+                ))}
+              </View>
             )}
           </View>
         </View>
@@ -464,6 +484,7 @@ export default function HomeScreen() {
             routePath: reservationOption?.routePath,
             pricingLabel: reservationPricingLabel,
             recommendedFlightId: reservationOption?.recommendedFlight?.id,
+            flightSegments: reservationFlightSegments,
           }}
         />
       )}
@@ -649,6 +670,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     color: "#c40868",
+  },
+  unavailableBox: {
+    backgroundColor: "#fff7ed",
+    borderRadius: 14,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+  },
+  unavailableText: {
+    fontSize: 13,
+    color: "#9a3412",
+    lineHeight: 18,
+  },
+  unavailableSegment: {
+    marginTop: 5,
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#c2410c",
   },
   flightInsightRow: {
     flexDirection: "row",
