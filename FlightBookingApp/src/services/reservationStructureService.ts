@@ -72,3 +72,14 @@ export function clearDemoReservations(): void {
   }
   reservationCounter = 1;
 }
+
+// Procesa cualquier colección de reservas usando una lista enlazada y devuelve un arreglo para UI.
+export function processReservationsWithLinkedList<T>(items: T[]): T[] {
+  const linkedList = new LinkedList<T>();
+
+  items.forEach((item) => {
+    linkedList.append(item);
+  });
+
+  return linkedList.toArray();
+}

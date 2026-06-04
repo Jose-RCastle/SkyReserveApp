@@ -12,7 +12,36 @@ import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { Reservation, setReservations } from "../redux/slices/reservationSlice";
+import { processReservationsWithLinkedList } from "../services/reservationStructureService";
+import { pushAction } from "../services/historyService";
 import i18n from "../i18n";
+
+const getFriendlyReservationError = (message?: string) => {
+  if (!message) {
+    return "No se pudo completar la operación de reservas. Intenta nuevamente.";
+  }
+
+  if (
+    message.includes("schema cache") ||
+    message.includes("Could not find the table")
+  ) {
+    return "La tabla de reservas aún no está configurada en Supabase. Puedes usar DS Lab para la demo local.";
+  }
+
+  if (
+    message.includes("row-level security") ||
+    message.includes("permission denied") ||
+    message.includes("not authorized")
+  ) {
+    return "No tienes permisos para acceder a estas reservas. Revisa las políticas de Supabase.";
+  }
+
+  if (message.includes("created_at")) {
+    return "La tabla de reservas necesita la columna created_at para ordenar los resultados.";
+  }
+
+  return "No se pudo completar la operación de reservas. Intenta nuevamente.";
+};
 
 type ReservationRow = {
   id: string;
@@ -59,7 +88,10 @@ export default function MyReservationsScreen() {
         .order("created_at", { ascending: false });
 
       if (error) {
-        Alert.alert(i18n.t("unexpectedError"), error.message);
+        Alert.alert(
+          i18n.t("unexpectedError"),
+          getFriendlyReservationError(error.message)
+        );
         return;
       }
 
@@ -81,11 +113,15 @@ export default function MyReservationsScreen() {
         })
       );
 
-      dispatch(setReservations(mappedReservations));
+      const linkedListReservations = processReservationsWithLinkedList(
+        mappedReservations
+      );
+
+      dispatch(setReservations(linkedListReservations));
     } catch (error: any) {
       Alert.alert(
         i18n.t("unexpectedError"),
-        error?.message || i18n.t("loadingReservations")
+        getFriendlyReservationError(error?.message) || i18n.t("loadingReservations")
       );
     } finally {
       setLoading(false);
@@ -93,6 +129,10 @@ export default function MyReservationsScreen() {
   };
 
   const handleCancelReservation = (reservationId: string) => {
+    const reservationToCancel = reservations.find(
+      (reservation) => reservation.id === reservationId
+    );
+
     Alert.alert(
       i18n.t("cancelReservationTitle"),
       i18n.t("cancelReservationMessage"),
@@ -112,8 +152,19 @@ export default function MyReservationsScreen() {
                 .eq("id", reservationId);
 
               if (error) {
-                Alert.alert(i18n.t("unexpectedError"), error.message);
+                Alert.alert(
+                  i18n.t("unexpectedError"),
+                  getFriendlyReservationError(error.message)
+                );
                 return;
+              }
+
+              if (reservationToCancel) {
+                pushAction({
+                  type: "CANCEL_RESERVATION",
+                  description: `Reserva cancelada: ${reservationToCancel.destinationName}`,
+                  payload: reservationToCancel,
+                });
               }
 
               Alert.alert(
@@ -125,7 +176,7 @@ export default function MyReservationsScreen() {
             } catch (error: any) {
               Alert.alert(
                 i18n.t("unexpectedError"),
-                error?.message || ""
+                getFriendlyReservationError(error?.message)
               );
             }
           },
@@ -165,6 +216,10 @@ export default function MyReservationsScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.screenTitle}>
         {i18n.t("reservationsTitle")}
+      </Text>
+
+      <Text style={styles.structureLabel}>
+        Estructura usada: Lista enlazada para gestión de reservas
       </Text>
 
       {reservations.length === 0 ? (
@@ -267,7 +322,13 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: "800",
     color: "#111827",
-    marginBottom: 20,
+    marginBottom: 10,
+  },
+  structureLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#2d5fb2",
+    marginBottom: 16,
   },
   emptyCard: {
     backgroundColor: "#ffffff",
