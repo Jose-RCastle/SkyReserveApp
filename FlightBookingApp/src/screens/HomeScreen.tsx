@@ -20,7 +20,7 @@ import { addReservation } from "../redux/slices/reservationSlice";
 import { supabase } from "../lib/supabase";
 import i18n from "../i18n";
 import { findRouteBFS } from "../services/routeService";
-import { searchFlightsByRoute } from "../services/flightSearchService";
+import { getReservationOption, searchFlightsByRoute } from "../services/flightSearchService";
 
 
 const flightData = require("../data/flights.json") as any;
@@ -68,6 +68,26 @@ export default function HomeScreen() {
     return searchFlightsByRoute(selectedOrigin.code, selectedDestinationCode);
   }, [selectedOrigin.code, selectedDestinationCode]);
 
+  const reservationOption = useMemo(() => {
+    if (!selectedDestinationCode) return null;
+
+    return getReservationOption(
+      selectedOrigin.code,
+      selectedDestinationCode,
+      routeSuggestion,
+      priceOrderedFlights
+    );
+  }, [priceOrderedFlights, routeSuggestion, selectedDestinationCode, selectedOrigin.code]);
+
+  const reservationTotalPrice = reservationOption
+    ? passengers.calculateTotalPrice(reservationOption.basePrice)
+    : 0;
+
+  const reservationPricingLabel = reservationOption?.priceSource === "direct-flight"
+    ? `Vuelo directo ${reservationOption.recommendedFlight?.id ?? "recomendado"}`
+    : reservationOption?.priceSource === "estimated-route"
+      ? `Precio estimado por ruta (${reservationOption.stops} escala${reservationOption.stops === 1 ? "" : "s"})`
+      : "Ruta no disponible";
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("es-ES", {
@@ -103,6 +123,14 @@ export default function HomeScreen() {
   const handleSearch = () => {
     if (!validatePassengers()) return;
 
+    if (!reservationOption?.canReserve) {
+      Alert.alert(
+        "Ruta no disponible",
+        reservationOption?.message ?? "Selecciona una ruta con vuelos o conexiones disponibles para reservar."
+      );
+      return;
+    }
+
     if (flightSearch.handleSearch(flightSearch.selectedDestination)) {
       modals.setShowConfirmationModal(true);
     }
@@ -124,6 +152,14 @@ export default function HomeScreen() {
         Alert.alert(
           i18n.t("destinationRequired"),
           i18n.t("selectDestinationBeforeBooking")
+        );
+        return;
+      }
+
+      if (!reservationOption?.canReserve) {
+        Alert.alert(
+          "Ruta no disponible",
+          reservationOption?.message ?? "No se puede completar la reserva porque no hay ruta disponible."
         );
         return;
       }
@@ -159,7 +195,7 @@ export default function HomeScreen() {
         adults: passengers.passengers.adults,
         children: passengers.passengers.children,
         infants: passengers.passengers.infants,
-        total_price: passengers.calculateTotalPrice(destination.basePrice),
+        total_price: reservationTotalPrice,
         reservation_date: new Date().toLocaleDateString("es-ES"),
       };
 
@@ -317,9 +353,16 @@ export default function HomeScreen() {
                   <Text style={styles.flightInsightPrice}>${flight.price}</Text>
                 </View>
               ))
+            ) : reservationOption?.priceSource === "estimated-route" ? (
+              <View style={styles.estimatedRouteBox}>
+                <Text style={styles.smartResult}>Ruta disponible por escalas</Text>
+                <Text style={styles.estimatedRouteText}>
+                  Precio estimado: ${reservationOption.basePrice} · {reservationOption.stops} escala{reservationOption.stops === 1 ? "" : "s"}
+                </Text>
+              </View>
             ) : (
               <Text style={styles.smartResult}>
-                No hay vuelos directos simulados para esta ruta.
+                Sin vuelos directos disponibles.
               </Text>
             )}
           </View>
@@ -417,7 +460,10 @@ export default function HomeScreen() {
                 ? formatDate(flightSearch.returnDate)
                 : undefined,
             passengers: passengers.passengers,
-            totalPrice: passengers.calculateTotalPrice(flightSearch.selectedDestination.basePrice),
+            totalPrice: reservationTotalPrice,
+            routePath: reservationOption?.routePath,
+            pricingLabel: reservationPricingLabel,
+            recommendedFlightId: reservationOption?.recommendedFlight?.id,
           }}
         />
       )}
@@ -591,6 +637,18 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#1d2533",
     marginBottom: 4,
+  },
+  estimatedRouteBox: {
+    backgroundColor: "#fff7fb",
+    borderRadius: 14,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#ffd7ea",
+  },
+  estimatedRouteText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#c40868",
   },
   flightInsightRow: {
     flexDirection: "row",

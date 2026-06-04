@@ -18,6 +18,9 @@ type Props = {
       infants: number;
     };
     totalPrice: number;
+    routePath?: string[];
+    pricingLabel?: string;
+    recommendedFlightId?: string;
   };
 };
 
@@ -67,6 +70,27 @@ export default function ConfirmationModal({
             <Text style={styles.detailLabel}>{i18n.t("passengers")}</Text>
             <Text style={styles.detailValue}>{calculatePassengerCount()}</Text>
           </View>
+
+          {flightDetails.routePath && flightDetails.routePath.length > 1 && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Ruta sugerida</Text>
+              <Text style={styles.detailValue}>{flightDetails.routePath.join(" → ")}</Text>
+            </View>
+          )}
+
+          {flightDetails.recommendedFlightId && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Vuelo</Text>
+              <Text style={styles.detailValue}>{flightDetails.recommendedFlightId}</Text>
+            </View>
+          )}
+
+          {flightDetails.pricingLabel && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Tarifa</Text>
+              <Text style={styles.detailValue}>{flightDetails.pricingLabel}</Text>
+            </View>
+          )}
 
           <View style={styles.priceContainer}>
             <Text style={styles.priceLabel}>{i18n.t("total")}</Text>

@@ -1,5 +1,6 @@
 import enhancedFlightsData from "../data/enhancedFlights.json";
 import BinarySearchTree from "../dataStructures/BinarySearchTree";
+import type { RouteConnection, RouteSearchResult } from "./routeService";
 
 export type EnhancedFlight = {
   id: string;
@@ -22,6 +23,19 @@ export type FlightSearchResult = {
   message: string;
 };
 
+export type ReservationOption = {
+  origin: string;
+  destination: string;
+  routePath: string[];
+  routeSegments: RouteConnection[];
+  stops: number;
+  recommendedFlight: EnhancedFlight | null;
+  basePrice: number;
+  priceSource: "direct-flight" | "estimated-route" | "unavailable";
+  canReserve: boolean;
+  message: string;
+};
+
 const enhancedFlights = enhancedFlightsData as EnhancedFlight[];
 
 // Compara vuelos únicamente por precio para demostrar duplicados en el árbol binario.
@@ -36,7 +50,7 @@ export function buildFlightPriceTree(flights: EnhancedFlight[]): BinarySearchTre
   return tree;
 }
 
-// Devuelve todos los vuelos simulados desde el archivo local enhancedFlights.json.
+// Devuelve todos los vuelos enriquecidos desde el archivo local enhancedFlights.json.
 export function getAllEnhancedFlights(): EnhancedFlight[] {
   return [...enhancedFlights];
 }
@@ -50,7 +64,7 @@ export function filterFlightsByRoute(origin: string, destination: string): Enhan
   );
 }
 
-// Busca vuelos por ruta, los inserta en un árbol por precio y devuelve recorridos para demo.
+// Busca vuelos por ruta, los inserta en un árbol por precio y devuelve recorridos para SkyRoute DS.
 export function searchFlightsByRoute(origin: string, destination: string): FlightSearchResult {
   const flights = filterFlightsByRoute(origin, destination);
   const tree = buildFlightPriceTree(flights);
@@ -64,8 +78,70 @@ export function searchFlightsByRoute(origin: string, destination: string): Fligh
     cheapestFlight: tree.findMin(),
     mostExpensiveFlight: tree.findMax(),
     message: flights.length === 0
-      ? `No hay vuelos simulados de ${origin} a ${destination}.`
-      : `Se encontraron ${flights.length} vuelo${flights.length === 1 ? "" : "s"} de ${origin} a ${destination}.`,
+      ? `Sin vuelos directos disponibles de ${origin} a ${destination}.`
+      : `Vuelos disponibles de ${origin} a ${destination}: ${flights.length}.`,
+  };
+}
+
+
+// Calcula la opción de reserva coherente entre vuelos directos y ruta por escalas.
+export function getReservationOption(
+  origin: string,
+  destination: string,
+  routeResult: RouteSearchResult | null,
+  flightResult: FlightSearchResult | null
+): ReservationOption {
+  const directFlight = flightResult?.cheapestFlight ?? null;
+  const routePath = routeResult?.route ?? [];
+  const routeSegments = routeResult?.segments ?? [];
+  const hasRoute = routePath.length > 0;
+
+  if (directFlight) {
+    return {
+      origin,
+      destination,
+      routePath: hasRoute ? routePath : [origin, destination],
+      routeSegments: hasRoute ? routeSegments : [],
+      stops: 0,
+      recommendedFlight: directFlight,
+      basePrice: directFlight.price,
+      priceSource: "direct-flight",
+      canReserve: true,
+      message: `Vuelo directo recomendado: ${directFlight.id} por $${directFlight.price}.`,
+    };
+  }
+
+  if (hasRoute && routeSegments.length > 0) {
+    const estimatedPrice = routeSegments.reduce(
+      (total, segment) => total + segment.basePrice,
+      0
+    );
+
+    return {
+      origin,
+      destination,
+      routePath,
+      routeSegments,
+      stops: routeResult?.stops ?? Math.max(routePath.length - 2, 0),
+      recommendedFlight: null,
+      basePrice: estimatedPrice,
+      priceSource: "estimated-route",
+      canReserve: estimatedPrice > 0,
+      message: `Ruta disponible por escalas. Precio estimado: $${estimatedPrice}.`,
+    };
+  }
+
+  return {
+    origin,
+    destination,
+    routePath: [],
+    routeSegments: [],
+    stops: 0,
+    recommendedFlight: null,
+    basePrice: 0,
+    priceSource: "unavailable",
+    canReserve: false,
+    message: `No hay ruta disponible de ${origin} a ${destination}.`,
   };
 }
 
