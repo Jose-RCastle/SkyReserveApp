@@ -133,7 +133,7 @@ export default function DataStructuresDemoScreen() {
   const handlePushHistoryAction = () => {
     pushAction({
       type: "DEMO_ACTION",
-      description: "Acción académica agregada a la pila LIFO",
+      description: "Acción agregada a la pila LIFO",
     });
     refreshHistory();
   };
@@ -145,14 +145,14 @@ export default function DataStructuresDemoScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>SkyRoute DS - Demo de Estructuras</Text>
+      <Text style={styles.title}>SkyRoute DS Lab</Text>
       <Text style={styles.subtitle}>
-        Pantalla académica para demostrar estructuras de datos con servicios locales.
+        Laboratorio visual de estructuras aplicadas a reservas aéreas.
       </Text>
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Grafo BFS</Text>
-        <Text style={styles.badge}>Estructura usada: Graph | Algoritmo: BFS</Text>
+        <Text style={styles.badge}>Grafo BFS · menor número de escalas</Text>
         <Text style={styles.text}>Consulta: SAP → MAD</Text>
         <Text style={styles.result}>Ruta: {routeResult.route.join(" → ")}</Text>
         <Text style={styles.text}>Escalas: {routeResult.stops}</Text>
@@ -166,7 +166,7 @@ export default function DataStructuresDemoScreen() {
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Árbol Binario</Text>
-        <Text style={styles.badge}>Estructura usada: BinarySearchTree</Text>
+        <Text style={styles.badge}>Árbol Binario · orden por precio</Text>
         <Text style={styles.text}>Consulta: vuelos SAP → MIA ordenados por precio</Text>
         {flightResult.inOrder.map((flight) => (
           <Text key={flight.id} style={styles.result}>
@@ -187,9 +187,9 @@ export default function DataStructuresDemoScreen() {
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Lista Enlazada</Text>
-        <Text style={styles.badge}>Estructura usada: LinkedList</Text>
+        <Text style={styles.badge}>Lista enlazada · reservas activas</Text>
         <TouchableOpacity style={styles.button} onPress={handleCreateDemoReservation}>
-          <Text style={styles.buttonText}>Crear reserva demo</Text>
+          <Text style={styles.buttonText}>Crear reserva</Text>
         </TouchableOpacity>
         <Text style={styles.text}>Reservas activas: {reservations.length}</Text>
         <Text style={styles.text}>
@@ -204,10 +204,10 @@ export default function DataStructuresDemoScreen() {
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Tabla Hash</Text>
-        <Text style={styles.badge}>Estructura usada: HashTable | Clave: código de reserva</Text>
+        <Text style={styles.badge}>Tabla Hash · búsqueda por código</Text>
         <Text style={styles.text}>Código actual: {lookupCode || "Crea una reserva demo primero"}</Text>
         <TouchableOpacity style={styles.button} onPress={handleFindReservationInLookup}>
-          <Text style={styles.buttonText}>Buscar código en HashTable</Text>
+          <Text style={styles.buttonText}>Buscar código</Text>
         </TouchableOpacity>
         <Text style={styles.text}>
           Existe código: {lookupCode ? String(hasReservationCode(lookupCode)) : "false"}
@@ -225,7 +225,7 @@ export default function DataStructuresDemoScreen() {
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Cola FIFO</Text>
-        <Text style={styles.badge}>Estructura usada: Queue | Caso: vuelos llenos</Text>
+        <Text style={styles.badge}>Cola FIFO · lista de espera</Text>
         <Text style={styles.text}>Vuelos llenos disponibles para demo:</Text>
         {fullFlights.slice(0, 4).map((flight) => (
           <Text key={flight.id} style={styles.smallText}>
@@ -234,14 +234,14 @@ export default function DataStructuresDemoScreen() {
         ))}
         <View style={styles.buttonRow}>
           <TouchableOpacity style={styles.button} onPress={handleJoinWaitlist}>
-            <Text style={styles.buttonText}>Unir pasajero demo</Text>
+            <Text style={styles.buttonText}>Unir pasajero</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.secondaryButton} onPress={handleProcessNextWaitlist}>
             <Text style={styles.secondaryButtonText}>Procesar siguiente</Text>
           </TouchableOpacity>
         </View>
         <Text style={styles.text}>
-          Siguiente: {nextWaitlistItem ? `${nextWaitlistItem.id} - ${nextWaitlistItem.flightId}` : "Nadie en cola"}
+          Siguiente: {nextWaitlistItem ? `${nextWaitlistItem.id} - ${nextWaitlistItem.flightId}` : "Sin pasajeros en cola"}
         </Text>
         {waitlistItems.map((entry) => (
           <Text key={entry.id} style={styles.result}>
@@ -252,7 +252,7 @@ export default function DataStructuresDemoScreen() {
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Pila LIFO</Text>
-        <Text style={styles.badge}>Estructura usada: Stack | Caso: historial/deshacer</Text>
+        <Text style={styles.badge}>Pila LIFO · historial/deshacer</Text>
         <View style={styles.buttonRow}>
           <TouchableOpacity style={styles.button} onPress={handlePushHistoryAction}>
             <Text style={styles.buttonText}>Registrar acción</Text>
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     paddingBottom: 36,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: "800",
     color: "#111827",
     marginTop: 20,
@@ -293,13 +293,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#5f6b7a",
     marginTop: 6,
-    marginBottom: 18,
+    marginBottom: 14,
   },
   card: {
     backgroundColor: "#ffffff",
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: 20,
+    padding: 14,
+    marginBottom: 14,
     shadowColor: "#000",
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -307,15 +307,20 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardTitle: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: "800",
     color: "#1f3658",
     marginBottom: 6,
   },
   badge: {
-    fontSize: 13,
-    fontWeight: "700",
+    alignSelf: "flex-start",
+    fontSize: 12,
+    fontWeight: "800",
     color: "#1f6ed4",
+    backgroundColor: "#eaf3ff",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     marginBottom: 10,
   },
   text: {
@@ -324,7 +329,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   result: {
-    fontSize: 15,
+    fontSize: 14,
     color: "#111827",
     fontWeight: "600",
     marginBottom: 5,

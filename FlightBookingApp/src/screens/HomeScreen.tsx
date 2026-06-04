@@ -264,7 +264,7 @@ export default function HomeScreen() {
             <View style={styles.smartHeaderText}>
               <Text style={styles.smartTitle}>SkyRoute DS</Text>
               <Text style={styles.smartSubtitle}>
-                Ruta y precios con estructuras de datos
+                Rutas y precios inteligentes
               </Text>
             </View>
           </View>
@@ -277,7 +277,7 @@ export default function HomeScreen() {
 
           <View style={styles.smartSection}>
             <Text style={styles.structureTag}>
-              Grafo · BFS
+              Grafo BFS
             </Text>
             <Text style={styles.smartText} numberOfLines={2}>
               {routeSuggestion?.message ?? "Selecciona origen y destino para sugerir una ruta."}
@@ -300,7 +300,7 @@ export default function HomeScreen() {
 
           <View style={styles.smartSection}>
             <Text style={styles.structureTag}>
-              Árbol binario · inOrder
+              Árbol Binario
             </Text>
             <Text style={styles.smartText} numberOfLines={2}>
               {priceOrderedFlights?.message ?? "Selecciona destino para ordenar vuelos por precio."}
@@ -493,9 +493,9 @@ const styles = StyleSheet.create({
   smartCard: {
     backgroundColor: "#ffffff",
     marginHorizontal: 16,
-    marginTop: 18,
-    borderRadius: 26,
-    padding: 16,
+    marginTop: 16,
+    borderRadius: 24,
+    padding: 14,
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 14,
@@ -506,12 +506,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   smartIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 14,
     backgroundColor: "#1f6ed4",
     alignItems: "center",
     justifyContent: "center",
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   smartTitle: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: "800",
     color: "#111827",
   },
@@ -534,8 +534,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff0f7",
     borderRadius: 999,
     paddingHorizontal: 12,
-    paddingVertical: 7,
-    marginBottom: 4,
+    paddingVertical: 6,
+    marginBottom: 2,
   },
   routePillText: {
     color: "#c40868",
@@ -545,8 +545,8 @@ const styles = StyleSheet.create({
   smartSection: {
     backgroundColor: "#f8fbff",
     borderRadius: 18,
-    padding: 14,
-    marginTop: 10,
+    padding: 12,
+    marginTop: 9,
     borderWidth: 1,
     borderColor: "#e8f1ff",
   },
@@ -557,15 +557,15 @@ const styles = StyleSheet.create({
     color: "#1f6ed4",
     backgroundColor: "#eaf3ff",
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
     marginBottom: 8,
   },
   smartText: {
     fontSize: 14,
     color: "#4b5563",
     lineHeight: 20,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   smartMetricRow: {
     flexDirection: "row",
@@ -597,7 +597,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderTopWidth: 1,
     borderTopColor: "#edf2f7",
   },

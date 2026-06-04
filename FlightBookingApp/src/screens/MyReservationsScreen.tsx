@@ -221,7 +221,7 @@ export default function MyReservationsScreen() {
       <View style={styles.structureBadge}>
         <Ionicons name="git-branch-outline" size={16} color="#1f6ed4" />
         <Text style={styles.structureLabel}>
-          Lista enlazada para gestión de reservas
+          Estructura: Lista enlazada | Reservas activas
         </Text>
       </View>
 

@@ -2,8 +2,8 @@ import { I18n } from "i18n-js";
 
 const i18n = new I18n({
   es: {
-    loginTitle: "SkyReserve",
-    loginSubtitle: "Sistema de Reservación de Vuelos",
+    loginTitle: "SkyRoute DS",
+    loginSubtitle: "Reservas aéreas con estructuras de datos",
     emailPlaceholder: "Ingrese su correo",
     passwordPlaceholder: "Ingrese su contraseña",
     loginButton: "Iniciar sesión",
@@ -74,7 +74,7 @@ const i18n = new I18n({
     loadingInfo: "Cargando información...",
     infoCouldNotBeLoaded: "No se pudo cargar la información.",
 
-    homeHeroTitle: "Encuentra con AppReserve",
+    homeHeroTitle: "Encuentra rutas con SkyRoute DS",
     origin: "Origen",
     destination: "Destino",
     selectDestination: "Selecciona un destino",
@@ -122,8 +122,8 @@ const i18n = new I18n({
   },
 
   en: {
-    loginTitle: "SkyReserve",
-    loginSubtitle: "Flight Reservation System",
+    loginTitle: "SkyRoute DS",
+    loginSubtitle: "Flight booking with data structures",
     emailPlaceholder: "Enter your email",
     passwordPlaceholder: "Enter your password",
     loginButton: "Log in",
@@ -194,7 +194,7 @@ const i18n = new I18n({
     loadingInfo: "Loading information...",
     infoCouldNotBeLoaded: "The information could not be loaded.",
 
-    homeHeroTitle: "Find with AppReserve",
+    homeHeroTitle: "Find routes with SkyRoute DS",
     origin: "Origin",
     destination: "Destination",
     selectDestination: "Select a destination",
