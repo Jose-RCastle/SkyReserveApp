@@ -1,12 +1,7 @@
 import { View, Text, StyleSheet, Modal, TouchableOpacity, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import i18n from "../i18n";
-
-type Origin = {
-  id: string;
-  name: string;
-  code: string;
-};
+import type { Origin } from "../types/flight.types";
 
 type Props = {
   visible: boolean;
@@ -44,7 +39,12 @@ export default function OriginModal({ visible, onClose, onSelect, origins }: Pro
                   <View style={styles.iconCircle}>
                     <Ionicons name="airplane-outline" size={18} color="#2d5fb2" />
                   </View>
-                  <Text style={styles.originName}>{item.name}</Text>
+                  <View style={styles.originTextBlock}>
+                    <Text style={styles.originName}>{item.name}</Text>
+                    {item.country && (
+                      <Text style={styles.originCountry}>{item.country}</Text>
+                    )}
+                  </View>
                 </View>
                 <Text style={styles.originCode}>{item.code}</Text>
               </TouchableOpacity>
@@ -111,11 +111,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  originTextBlock: {
+    flex: 1,
+  },
   originName: {
     fontSize: 18,
     fontWeight: "600",
     color: "#1f2430",
-    flex: 1,
+  },
+  originCountry: {
+    fontSize: 14,
+    color: "#848b99",
+    marginTop: 2,
   },
   originCode: {
     fontSize: 16,

@@ -19,17 +19,11 @@ import { useAppDispatch } from "../redux/hooks";
 import { addReservation } from "../redux/slices/reservationSlice";
 import { supabase } from "../lib/supabase";
 import i18n from "../i18n";
-import { findRouteBFS } from "../services/routeService";
+import { findRouteBFS, getAirportCatalog, getReachableDestinations } from "../services/routeService";
 import { getReservationOption, searchFlightsByRoute } from "../services/flightSearchService";
+import type { Destination, Origin } from "../types/flight.types";
 
-
-const flightData = require("../data/flights.json") as any;
-
-type OfferCard = {
-  id: string;
-  name: string;
-  country: string;
-  basePrice: number;
+type OfferCard = Destination & {
   image: string;
 };
 
@@ -41,7 +35,8 @@ const offerImages = [
 ];
 
 export default function HomeScreen() {
-  const [selectedOrigin, setSelectedOrigin] = useState(flightData.origins[0]);
+  const airportCatalog = useMemo(() => getAirportCatalog(), []);
+  const [selectedOrigin, setSelectedOrigin] = useState<Origin>(() => airportCatalog[0]);
   const [showOriginModal, setShowOriginModal] = useState(false);
 
   const originLabel = `${selectedOrigin.name} (${selectedOrigin.code})`;
@@ -51,7 +46,12 @@ export default function HomeScreen() {
   const passengers = usePassengers();
   const modals = useModals();
 
-  const offers: OfferCard[] = flightData.destinations.slice(0, 4).map((item: any, index: number) => ({
+  const reachableDestinations = useMemo(
+    () => getReachableDestinations(selectedOrigin.code),
+    [selectedOrigin.code]
+  );
+
+  const offers: OfferCard[] = reachableDestinations.slice(0, 4).map((item, index) => ({
     ...item,
     image: offerImages[index % offerImages.length],
   }));
@@ -141,6 +141,21 @@ export default function HomeScreen() {
     }
 
     modals.setShowConfirmationModal(true);
+  };
+
+  const handleOriginSelect = (origin: Origin) => {
+    setSelectedOrigin(origin);
+
+    const currentDestination = flightSearch.selectedDestination;
+    if (!currentDestination) return;
+
+    const isStillReachable = getReachableDestinations(origin.code).some(
+      (destination) => destination.id === currentDestination.id
+    );
+
+    if (!isStillReachable) {
+      flightSearch.setSelectedDestination(null);
+    }
   };
 
   const handleOfferPress = (offer: OfferCard) => {
@@ -320,7 +335,7 @@ export default function HomeScreen() {
 
           <View style={styles.smartSection}>
             <Text style={styles.structureTag}>
-              Grafo BFS
+              Ruta sugerida
             </Text>
             <Text style={styles.smartText} numberOfLines={2}>
               {routeSuggestion?.message ?? "Selecciona origen y destino para sugerir una ruta."}
@@ -343,7 +358,7 @@ export default function HomeScreen() {
 
           <View style={styles.smartSection}>
             <Text style={styles.structureTag}>
-              Árbol Binario
+              Vuelos disponibles
             </Text>
             <Text style={styles.smartText} numberOfLines={2}>
               {reservationOption?.message ?? priceOrderedFlights?.message ?? "Selecciona destino para ordenar vuelos por precio."}
@@ -413,7 +428,7 @@ export default function HomeScreen() {
               </Text>
             </View>
             <Text style={styles.offerPrice}>
-              {i18n.t("roundTripPriceFrom")} ${offer.basePrice}
+              {offer.availabilityLabel ?? "Ruta disponible"}
             </Text>
           </TouchableOpacity>
         ))}
@@ -447,15 +462,15 @@ export default function HomeScreen() {
       <OriginModal
         visible={showOriginModal}
         onClose={() => setShowOriginModal(false)}
-        onSelect={setSelectedOrigin}
-        origins={flightData.origins}
+        onSelect={handleOriginSelect}
+        origins={airportCatalog}
       />
 
       <DestinationModal
         visible={modals.showDestinationModal}
         onClose={() => modals.setShowDestinationModal(false)}
         onSelect={flightSearch.setSelectedDestination}
-        destinations={flightData.destinations}
+        destinations={reachableDestinations}
       />
 
       <PassengerSelector

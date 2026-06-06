@@ -106,3 +106,49 @@ export function getAirports(): Airport[] {
 export function getRoutes(): RouteConnection[] {
   return [...routes];
 }
+
+export type AirportCatalogItem = {
+  id: string;
+  code: string;
+  name: string;
+  airportName: string;
+  city: string;
+  country: string;
+};
+
+export type ReachableDestination = AirportCatalogItem & {
+  stops: number;
+  availabilityLabel: "Vuelo directo" | "Con escala";
+};
+
+// Convierte airports.json al formato compatible con los selectores existentes.
+export function getAirportCatalog(): AirportCatalogItem[] {
+  return airports.map((airport) => ({
+    id: airport.code,
+    code: airport.code,
+    name: airport.city,
+    airportName: airport.name,
+    city: airport.city,
+    country: airport.country,
+  }));
+}
+
+// Devuelve solo destinos alcanzables desde el origen usando BFS sobre el grafo de rutas.
+export function getReachableDestinations(origin: string): ReachableDestination[] {
+  if (!origin) return [];
+
+  return getAirportCatalog()
+    .filter((airport) => airport.code !== origin)
+    .map((airport) => {
+      const routeResult = findRouteBFS(origin, airport.code);
+
+      if (routeResult.route.length === 0) return null;
+
+      return {
+        ...airport,
+        stops: routeResult.stops,
+        availabilityLabel: routeResult.stops === 0 ? "Vuelo directo" : "Con escala",
+      };
+    })
+    .filter((airport): airport is ReachableDestination => airport !== null);
+}
