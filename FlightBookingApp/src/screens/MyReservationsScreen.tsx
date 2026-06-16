@@ -21,6 +21,12 @@ import {
   ReservationStructures,
   ReservationWithCode,
 } from "../services/reservationIndexService";
+import {
+  buildWaitlistQueue,
+  getUserWaitlistPosition,
+  getWaitlistArrayFromQueue,
+  RealWaitlistEntry,
+} from "../services/waitlistService";
 import i18n from "../i18n";
 
 const getFriendlyReservationError = (message?: string) => {
@@ -65,6 +71,38 @@ type ReservationRow = {
   reservation_date: string;
 };
 
+type WaitlistRow = {
+  id: string;
+  user_email: string;
+  flight_id: string;
+  origin: string;
+  destination: string;
+  destination_name: string;
+  departure_date: string;
+  return_date: string | null;
+  passengers_total: number;
+  status: string;
+  created_at: string | null;
+};
+
+type WaitlistDisplayEntry = RealWaitlistEntry & {
+  position: number | null;
+};
+
+const mapWaitlistRow = (item: WaitlistRow): RealWaitlistEntry => ({
+  id: item.id,
+  userEmail: item.user_email,
+  flightId: item.flight_id,
+  origin: item.origin,
+  destination: item.destination,
+  destinationName: item.destination_name,
+  departureDate: item.departure_date,
+  returnDate: item.return_date,
+  passengersTotal: item.passengers_total,
+  status: item.status,
+  createdAt: item.created_at,
+});
+
 export default function MyReservationsScreen() {
   const dispatch = useAppDispatch();
 
@@ -73,6 +111,7 @@ export default function MyReservationsScreen() {
   const [loading, setLoading] = useState(false);
   const [reservationItems, setReservationItems] = useState<ReservationWithCode[]>([]);
   const [reservationLookup, setReservationLookup] = useState<ReservationStructures["lookup"] | null>(null);
+  const [waitlistItems, setWaitlistItems] = useState<WaitlistDisplayEntry[]>([]);
   const [searchCode, setSearchCode] = useState("");
   const [searchResult, setSearchResult] = useState<ReservationWithCode | null>(null);
   const [searchMessage, setSearchMessage] = useState("");
@@ -88,6 +127,7 @@ export default function MyReservationsScreen() {
     setReservationLookup(emptyStructures.lookup);
     setSearchResult(null);
     setSearchMessage("");
+    setWaitlistItems([]);
     dispatch(setReservations([]));
   }, [dispatch]);
 
@@ -112,6 +152,56 @@ export default function MyReservationsScreen() {
           getFriendlyReservationError(error.message)
         );
         return;
+      }
+
+      const { data: userWaitlistData, error: userWaitlistError } = await supabase
+        .from("waitlist")
+        .select("*")
+        .eq("user_email", userEmail)
+        .order("created_at", { ascending: true });
+
+      if (userWaitlistError) {
+        Alert.alert(
+          i18n.t("unexpectedError"),
+          "No se pudo cargar tu lista de espera. Tus reservas siguen disponibles."
+        );
+        setWaitlistItems([]);
+      } else {
+        const userWaitlistEntries = ((userWaitlistData ?? []) as WaitlistRow[]).map(
+          mapWaitlistRow
+        );
+        const flightIds = Array.from(
+          new Set(userWaitlistEntries.map((entry) => entry.flightId))
+        );
+
+        let allWaitlistEntries = userWaitlistEntries;
+
+        if (flightIds.length > 0) {
+          const { data: allWaitlistData, error: allWaitlistError } = await supabase
+            .from("waitlist")
+            .select("*")
+            .in("flight_id", flightIds)
+            .order("created_at", { ascending: true });
+
+          if (!allWaitlistError) {
+            allWaitlistEntries = ((allWaitlistData ?? []) as WaitlistRow[]).map(
+              mapWaitlistRow
+            );
+          }
+        }
+
+        const waitlistQueue = buildWaitlistQueue(allWaitlistEntries);
+        const queuedWaitlistEntries = getWaitlistArrayFromQueue(waitlistQueue);
+        setWaitlistItems(
+          userWaitlistEntries.map((entry) => ({
+            ...entry,
+            position: getUserWaitlistPosition(
+              buildWaitlistQueue(queuedWaitlistEntries),
+              userEmail,
+              entry.flightId
+            ),
+          }))
+        );
       }
 
       const mappedReservations: Reservation[] = (data as ReservationRow[]).map(
@@ -409,6 +499,46 @@ export default function MyReservationsScreen() {
           );
         })
       )}
+
+      <View style={styles.waitlistSection}>
+        <View style={styles.waitlistHeader}>
+          <Ionicons name="time-outline" size={18} color="#1f6ed4" />
+          <Text style={styles.waitlistTitle}>Lista de espera</Text>
+        </View>
+
+        {waitlistItems.length === 0 ? (
+          <View style={styles.waitlistEmptyCard}>
+            <Text style={styles.waitlistEmptyText}>
+              No tienes solicitudes en lista de espera.
+            </Text>
+          </View>
+        ) : (
+          waitlistItems.map((entry) => (
+            <View key={entry.id ?? `${entry.flightId}-${entry.createdAt}`} style={styles.waitlistCard}>
+              <View style={styles.waitlistCardHeader}>
+                <Text style={styles.waitlistRoute}>
+                  {entry.origin.split(" (")[0]} → {entry.destinationName}
+                </Text>
+                <Text style={styles.waitlistStatus}>{entry.status}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Ionicons name="calendar-outline" size={16} color="#7f8796" />
+                <Text style={styles.detailText}>Salida: {entry.departureDate}</Text>
+              </View>
+              <View style={styles.detailRow}>
+                <Ionicons name="people-outline" size={16} color="#7f8796" />
+                <Text style={styles.detailText}>Pasajeros: {entry.passengersTotal}</Text>
+              </View>
+              {entry.position ? (
+                <View style={styles.detailRow}>
+                  <Ionicons name="flag-outline" size={16} color="#7f8796" />
+                  <Text style={styles.detailText}>Posición actual: {entry.position}</Text>
+                </View>
+              ) : null}
+            </View>
+          ))
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -558,6 +688,69 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: "#636b78",
     lineHeight: 26,
+  },
+  waitlistSection: {
+    marginTop: 22,
+  },
+  waitlistHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  waitlistTitle: {
+    fontSize: 22,
+    fontWeight: "900",
+    color: "#111827",
+  },
+  waitlistEmptyCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#edf2f7",
+  },
+  waitlistEmptyText: {
+    fontSize: 15,
+    color: "#636b78",
+    fontWeight: "600",
+  },
+  waitlistCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#e8f1ff",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  waitlistCardHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 10,
+    marginBottom: 10,
+  },
+  waitlistRoute: {
+    flex: 1,
+    fontSize: 17,
+    fontWeight: "900",
+    color: "#1d2533",
+    lineHeight: 23,
+  },
+  waitlistStatus: {
+    fontSize: 12,
+    fontWeight: "900",
+    color: "#1f6ed4",
+    backgroundColor: "#eaf3ff",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    overflow: "hidden",
   },
   card: {
     backgroundColor: "white",
