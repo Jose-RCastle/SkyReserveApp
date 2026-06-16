@@ -2,7 +2,6 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import HomeScreen from "../screens/HomeScreen";
 import MyReservationsScreen from "../screens/MyReservationsScreen";
 import ProfileScreen from "../screens/ProfileScreen";
-import DataStructuresDemoScreen from "../screens/DataStructuresDemoScreen";
 import { Ionicons } from "@expo/vector-icons";
 
 const Tab = createBottomTabNavigator();
@@ -22,8 +21,6 @@ export default function TabsNavigator() {
             iconName = "airplane";
           } else if (route.name === "Perfil") {
             iconName = "person";
-          } else if (route.name === "DS Lab") {
-            iconName = "flask";
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -35,7 +32,6 @@ export default function TabsNavigator() {
     >
       <Tab.Screen name="Inicio" component={HomeScreen} />
       <Tab.Screen name="Reservas" component={MyReservationsScreen} />
-      <Tab.Screen name="DS Lab" component={DataStructuresDemoScreen} />
       <Tab.Screen name="Perfil" component={ProfileScreen} />
     </Tab.Navigator>
   );
