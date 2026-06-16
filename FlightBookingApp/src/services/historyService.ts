@@ -2,12 +2,14 @@ import Stack from "../dataStructures/Stack";
 
 export type HistoryActionInput = {
   type: string;
+  title?: string;
   description: string;
   payload?: unknown;
 };
 
 export type HistoryAction = HistoryActionInput & {
   id: string;
+  title: string;
   createdAt: string;
 };
 
@@ -21,6 +23,7 @@ export function pushAction(input: HistoryActionInput): HistoryAction | null {
   const action: HistoryAction = {
     ...input,
     id: `ACT-${actionCounter.toString().padStart(4, "0")}`,
+    title: input.title ?? input.description,
     createdAt: new Date().toISOString(),
   };
 
@@ -42,4 +45,17 @@ export function peekLastAction(): HistoryAction | null {
 // Devuelve el historial como arreglo desde la acción más reciente hasta la más antigua.
 export function getHistoryArray(): HistoryAction[] {
   return history.toArray();
+}
+
+
+// Alias amigable para obtener la última acción del historial real.
+export function getLastAction(): HistoryAction | null {
+  return peekLastAction();
+}
+
+// Limpia todo el historial en memoria sin romper la pila existente.
+export function clearHistory(): void {
+  while (!history.isEmpty()) {
+    history.pop();
+  }
 }

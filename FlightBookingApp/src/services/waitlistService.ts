@@ -1,6 +1,6 @@
 import enhancedFlightsData from "../data/enhancedFlights.json";
 import Queue from "../dataStructures/Queue";
-import { EnhancedFlight } from "./flightSearchService";
+import { EnhancedFlight, ReservationOption } from "./flightSearchService";
 
 export type WaitlistEntry = {
   id: string;
@@ -14,6 +14,43 @@ export type WaitlistEntry = {
 export type JoinWaitlistInput = {
   flightId: string;
   passengerName?: string;
+};
+
+export type RealWaitlistEntry = {
+  id?: string;
+  userEmail: string;
+  flightId: string;
+  origin: string;
+  destination: string;
+  destinationName: string;
+  departureDate: string;
+  returnDate?: string | null;
+  passengersTotal: number;
+  status: string;
+  createdAt?: string | null;
+};
+
+export type WaitlistInsertPayload = {
+  user_email: string;
+  flight_id: string;
+  origin: string;
+  destination: string;
+  destination_name: string;
+  departure_date: string;
+  return_date: string | null;
+  passengers_total: number;
+  status: string;
+};
+
+export type CreateWaitlistEntryInput = {
+  userEmail: string;
+  origin: string;
+  destination: string;
+  destinationName: string;
+  departureDate: string;
+  returnDate?: string | null;
+  totalPassengers: number;
+  reservationOption: ReservationOption;
 };
 
 const enhancedFlights = enhancedFlightsData as EnhancedFlight[];
@@ -59,4 +96,64 @@ export function getNext(): WaitlistEntry | null {
 // Devuelve la cola de espera como arreglo para inspección o renderizado futuro.
 export function getWaitlistArray(): WaitlistEntry[] {
   return waitlist.toArray();
+}
+
+// Construye una cola real desde registros persistidos, respetando orden de llegada.
+export function buildWaitlistQueue(entries: RealWaitlistEntry[]): Queue<RealWaitlistEntry> {
+  const orderedEntries = [...entries].sort((a, b) => {
+    const firstDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const secondDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return firstDate - secondDate;
+  });
+
+  return new Queue<RealWaitlistEntry>(orderedEntries);
+}
+
+// Convierte una cola real en arreglo sin retirar elementos.
+export function getWaitlistArrayFromQueue(
+  queue: Queue<RealWaitlistEntry>
+): RealWaitlistEntry[] {
+  return queue.toArray();
+}
+
+// Calcula posición del usuario en la cola para un vuelo específico.
+export function getUserWaitlistPosition(
+  queue: Queue<RealWaitlistEntry>,
+  userEmail: string,
+  flightId: string
+): number | null {
+  if (!userEmail || !flightId) return null;
+
+  const entriesForFlight = queue
+    .toArray()
+    .filter((entry) => entry.flightId === flightId && entry.status !== "cancelled");
+
+  const positionIndex = entriesForFlight.findIndex(
+    (entry) => entry.userEmail === userEmail
+  );
+
+  return positionIndex >= 0 ? positionIndex + 1 : null;
+}
+
+// Prepara la entrada real para persistencia cuando no hay cupos suficientes.
+export function createWaitlistEntryFromReservationOption(
+  input: CreateWaitlistEntryInput
+): WaitlistInsertPayload {
+  const selectedFlight = input.reservationOption.selectedFlights[0];
+  const unavailableSegment = input.reservationOption.unavailableSegments[0];
+  const fallbackFlightId = unavailableSegment
+    ? unavailableSegment.replace(/\s+/g, "")
+    : `${input.origin}-${input.destination}`;
+
+  return {
+    user_email: input.userEmail,
+    flight_id: selectedFlight?.id ?? fallbackFlightId,
+    origin: input.origin,
+    destination: input.destination,
+    destination_name: input.destinationName,
+    departure_date: input.departureDate,
+    return_date: input.returnDate ?? null,
+    passengers_total: input.totalPassengers,
+    status: "pending",
+  };
 }

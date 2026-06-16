@@ -16,16 +16,67 @@ import ConfirmationModal from "./ConfirmationModal";
 import OriginModal from "./OriginModal";
 
 import { useAppDispatch } from "../redux/hooks";
-import { addReservation } from "../redux/slices/reservationSlice";
+import { addReservation, Reservation } from "../redux/slices/reservationSlice";
 import { supabase } from "../lib/supabase";
 import i18n from "../i18n";
 import { findRouteBFS, getAirportCatalog, getReachableDestinations } from "../services/routeService";
 import { getReservationOption, searchFlightsByRoute } from "../services/flightSearchService";
+import {
+  buildWaitlistQueue,
+  createWaitlistEntryFromReservationOption,
+  getUserWaitlistPosition,
+  RealWaitlistEntry,
+} from "../services/waitlistService";
+import { buildReservationStructures, hasDateConflict } from "../services/reservationIndexService";
+import { pushAction } from "../services/historyService";
 import type { Destination, Origin } from "../types/flight.types";
 
 type OfferCard = Destination & {
   image: string;
 };
+
+type ReservationRow = {
+  id: string;
+  user_email: string;
+  origin: string;
+  destination: string;
+  destination_name: string;
+  depart_date: string;
+  return_date: string | null;
+  adults: number;
+  children: number;
+  infants: number;
+  total_price: number;
+  reservation_date: string;
+};
+
+type WaitlistRow = {
+  id: string;
+  user_email: string;
+  flight_id: string;
+  origin: string;
+  destination: string;
+  destination_name: string;
+  departure_date: string;
+  return_date: string | null;
+  passengers_total: number;
+  status: string;
+  created_at: string | null;
+};
+
+const mapWaitlistRow = (item: WaitlistRow): RealWaitlistEntry => ({
+  id: item.id,
+  userEmail: item.user_email,
+  flightId: item.flight_id,
+  origin: item.origin,
+  destination: item.destination,
+  destinationName: item.destination_name,
+  departureDate: item.departure_date,
+  returnDate: item.return_date,
+  passengersTotal: item.passengers_total,
+  status: item.status,
+  createdAt: item.created_at,
+});
 
 const offerImages = [
   "https://media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/07/b1/fb/10.jpg",
@@ -96,6 +147,15 @@ export default function HomeScreen() {
     availableSeats: flight.availableSeats,
   }));
 
+  const canJoinWaitlist = Boolean(
+    flightSearch.selectedDestination &&
+    reservationOption &&
+    !reservationOption.canReserve &&
+    (reservationOption.unavailableSegments.length > 0 ||
+      (priceOrderedFlights?.flights.length ?? 0) > 0 ||
+      reservationOption.routePath.length > 1)
+  );
+
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("es-ES", {
       day: "2-digit",
@@ -132,6 +192,17 @@ export default function HomeScreen() {
 
     if (!flightSearch.handleSearch(flightSearch.selectedDestination)) return;
 
+    pushAction({
+      type: "SEARCH_ROUTE",
+      title: "Búsqueda realizada",
+      description: `Búsqueda realizada: ${selectedOrigin.code} → ${selectedDestinationCode}`,
+      payload: {
+        origin: selectedOrigin.code,
+        destination: selectedDestinationCode,
+        passengers: totalPassengers,
+      },
+    });
+
     if (!reservationOption?.canReserve) {
       Alert.alert(
         "Sin disponibilidad",
@@ -164,6 +235,103 @@ export default function HomeScreen() {
       i18n.t("destinationSelected"),
       `${offer.name} ${i18n.t("destinationAddedToForm")}`
     );
+  };
+
+
+  const handleJoinWaitlist = async () => {
+    try {
+      const destination = flightSearch.selectedDestination;
+
+      if (!destination || !reservationOption || !canJoinWaitlist) {
+        Alert.alert(
+          "Sin disponibilidad",
+          "No hay cupos suficientes para este grupo. Puedes unirte a la lista de espera."
+        );
+        return;
+      }
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        Alert.alert(i18n.t("sessionError"), userError.message);
+        return;
+      }
+
+      if (!user?.email) {
+        Alert.alert(
+          i18n.t("sessionNotFound"),
+          "Debes iniciar sesión para unirte a la lista de espera."
+        );
+        return;
+      }
+
+      const waitlistEntry = createWaitlistEntryFromReservationOption({
+        userEmail: user.email,
+        origin: originLabel,
+        destination: destination.id,
+        destinationName: destination.name,
+        departureDate: formatDate(flightSearch.departDate),
+        returnDate:
+          flightSearch.flightType === "roundtrip"
+            ? formatDate(flightSearch.returnDate)
+            : null,
+        totalPassengers,
+        reservationOption,
+      });
+
+      const { error: insertError } = await supabase
+        .from("waitlist")
+        .insert(waitlistEntry);
+
+      if (insertError) {
+        Alert.alert(
+          i18n.t("unexpectedError"),
+          "No se pudo agregar a la lista de espera. Intenta de nuevo."
+        );
+        return;
+      }
+
+      const { data: waitlistData } = await supabase
+        .from("waitlist")
+        .select("*")
+        .eq("flight_id", waitlistEntry.flight_id)
+        .order("created_at", { ascending: true });
+
+      const waitlistEntries: RealWaitlistEntry[] = ((waitlistData ?? []) as WaitlistRow[]).map(
+        mapWaitlistRow
+      );
+      const waitlistQueue = buildWaitlistQueue(waitlistEntries);
+      const userPosition = getUserWaitlistPosition(
+        waitlistQueue,
+        user.email,
+        waitlistEntry.flight_id
+      );
+
+      pushAction({
+        type: "JOIN_WAITLIST",
+        title: "Lista de espera",
+        description: `Lista de espera: ${selectedOrigin.code} → ${destination.id}`,
+        payload: {
+          ...waitlistEntry,
+          position: userPosition,
+        },
+      });
+
+      Alert.alert(
+        "Lista de espera",
+        userPosition
+          ? `Te uniste a la lista de espera. Tu posición actual es ${userPosition}.`
+          : "Te uniste a la lista de espera."
+      );
+    } catch (error: any) {
+      Alert.alert(
+        i18n.t("unexpectedError"),
+        "No se pudo agregar a la lista de espera. Intenta de nuevo."
+      );
+    }
   };
 
   const handleConfirmReservation = async () => {
@@ -221,6 +389,53 @@ export default function HomeScreen() {
         reservation_date: new Date().toLocaleDateString("es-ES"),
       };
 
+      const { data: existingReservationsData, error: existingReservationsError } =
+        await supabase
+          .from("reservations")
+          .select("*")
+          .eq("user_email", reservationData.user_email);
+
+      if (existingReservationsError) {
+        Alert.alert(
+          i18n.t("unexpectedError"),
+          "No se pudieron validar tus reservas actuales. Intenta de nuevo."
+        );
+        return;
+      }
+
+      const existingReservations: Reservation[] = (
+        (existingReservationsData ?? []) as ReservationRow[]
+      ).map((item) => ({
+        id: item.id,
+        origin: item.origin,
+        destination: item.destination,
+        destinationName: item.destination_name,
+        departDate: item.depart_date,
+        returnDate: item.return_date ?? undefined,
+        passengers: {
+          adults: item.adults,
+          children: item.children,
+          infants: item.infants,
+        },
+        totalPrice: Number(item.total_price),
+        reservationDate: item.reservation_date,
+      }));
+
+      const reservationStructures = buildReservationStructures(existingReservations);
+      const hasConflictingReservation = hasDateConflict(
+        reservationStructures.list,
+        reservationData.depart_date,
+        reservationData.return_date ?? undefined
+      );
+
+      if (hasConflictingReservation) {
+        Alert.alert(
+          "Reserva existente",
+          "Ya tienes una reserva en ese rango de fechas. Revisa tus reservas antes de crear otra."
+        );
+        return;
+      }
+
       const { error: insertError } = await supabase
         .from("reservations")
         .insert(reservationData);
@@ -243,6 +458,13 @@ export default function HomeScreen() {
           reservationDate: reservationData.reservation_date,
         })
       );
+
+      pushAction({
+        type: "CREATE_RESERVATION",
+        title: "Reserva creada",
+        description: `Reserva creada: ${selectedOrigin.code} → ${destination.id}`,
+        payload: reservationData,
+      });
 
       modals.setShowConfirmationModal(false);
       Alert.alert(i18n.t("success"), i18n.t("flightBookedSuccessfully"));
@@ -398,6 +620,16 @@ export default function HomeScreen() {
                     Sin cupos: {segment}
                   </Text>
                 ))}
+                {canJoinWaitlist ? (
+                  <TouchableOpacity
+                    style={styles.waitlistButton}
+                    onPress={handleJoinWaitlist}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons name="time-outline" size={17} color="#ffffff" />
+                    <Text style={styles.waitlistButtonText}>Unirme a lista de espera</Text>
+                  </TouchableOpacity>
+                ) : null}
               </View>
             )}
           </View>
@@ -703,6 +935,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
     color: "#c2410c",
+  },
+  waitlistButton: {
+    marginTop: 12,
+    minHeight: 44,
+    borderRadius: 14,
+    backgroundColor: "#1f6ed4",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+  },
+  waitlistButtonText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "800",
   },
   flightInsightRow: {
     flexDirection: "row",
