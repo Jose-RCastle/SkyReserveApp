@@ -155,7 +155,11 @@ export default function ProfileScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.screenTitle}>{i18n.t("accountTitle")}</Text>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.screenTitle}>{i18n.t("accountTitle")}</Text>
 
       <View style={styles.profileCard}>
         <View style={styles.avatarWrap}>
@@ -280,6 +284,7 @@ export default function ProfileScreen({ navigation }: any) {
           textStyle={styles.logoutButtonText}
         />
       </View>
+      </ScrollView>
 
       <Modal
         visible={historyVisible}
@@ -328,8 +333,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f6f7fb",
+  },
+  scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 24,
+    paddingBottom: 120,
   },
   loadingContainer: {
     flex: 1,
