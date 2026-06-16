@@ -6,14 +6,20 @@ import {
   Alert,
   ActivityIndicator,
   TouchableOpacity,
+  TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { Reservation, setReservations } from "../redux/slices/reservationSlice";
-import { processReservationsWithLinkedList } from "../services/reservationStructureService";
 import { pushAction } from "../services/historyService";
+import {
+  buildReservationStructures,
+  findReservationByCode,
+  ReservationStructures,
+  ReservationWithCode,
+} from "../services/reservationIndexService";
 import i18n from "../i18n";
 
 const getFriendlyReservationError = (message?: string) => {
@@ -25,7 +31,7 @@ const getFriendlyReservationError = (message?: string) => {
     message.includes("schema cache") ||
     message.includes("Could not find the table")
   ) {
-    return "La tabla de reservas aún no está configurada en Supabase. Puedes usar DS Lab para la demo local.";
+    return "La tabla de reservas aún no está configurada. Intenta nuevamente más tarde.";
   }
 
   if (
@@ -61,12 +67,14 @@ type ReservationRow = {
 export default function MyReservationsScreen() {
   const dispatch = useAppDispatch();
 
-  const reservations = useAppSelector(
-    (state) => state.reservations.reservations
-  );
   const userEmail = useAppSelector((state) => state.auth.userEmail);
 
   const [loading, setLoading] = useState(false);
+  const [reservationItems, setReservationItems] = useState<ReservationWithCode[]>([]);
+  const [reservationLookup, setReservationLookup] = useState<ReservationStructures["lookup"] | null>(null);
+  const [searchCode, setSearchCode] = useState("");
+  const [searchResult, setSearchResult] = useState<ReservationWithCode | null>(null);
+  const [searchMessage, setSearchMessage] = useState("");
 
   useEffect(() => {
     loadReservations();
@@ -75,6 +83,11 @@ export default function MyReservationsScreen() {
   const loadReservations = async () => {
     try {
       if (!userEmail) {
+        const emptyStructures = buildReservationStructures([]);
+        setReservationItems(emptyStructures.array);
+        setReservationLookup(emptyStructures.lookup);
+        setSearchResult(null);
+        setSearchMessage("");
         dispatch(setReservations([]));
         return;
       }
@@ -113,11 +126,25 @@ export default function MyReservationsScreen() {
         })
       );
 
-      const linkedListReservations = processReservationsWithLinkedList(
-        mappedReservations
-      );
+      const reservationStructures = buildReservationStructures(mappedReservations);
 
-      dispatch(setReservations(linkedListReservations));
+      setReservationItems(reservationStructures.array);
+      setReservationLookup(reservationStructures.lookup);
+
+      if (searchCode) {
+        const updatedSearchResult = findReservationByCode(
+          reservationStructures.lookup,
+          searchCode
+        );
+        setSearchResult(updatedSearchResult);
+        setSearchMessage(
+          updatedSearchResult
+            ? "Reserva encontrada."
+            : "No encontramos una reserva con ese código."
+        );
+      }
+
+      dispatch(setReservations(reservationStructures.array));
     } catch (error: any) {
       Alert.alert(
         i18n.t("unexpectedError"),
@@ -129,7 +156,7 @@ export default function MyReservationsScreen() {
   };
 
   const handleCancelReservation = (reservationId: string) => {
-    const reservationToCancel = reservations.find(
+    const reservationToCancel = reservationItems.find(
       (reservation) => reservation.id === reservationId
     );
 
@@ -185,6 +212,31 @@ export default function MyReservationsScreen() {
     );
   };
 
+
+  const handleSearchReservation = () => {
+    const normalizedCode = searchCode.trim().toUpperCase();
+
+    if (!normalizedCode) {
+      setSearchResult(null);
+      setSearchMessage("Ingresa un código de reserva para buscar.");
+      return;
+    }
+
+    if (!reservationLookup) {
+      setSearchResult(null);
+      setSearchMessage("Aún no hay reservas cargadas para buscar.");
+      return;
+    }
+
+    const reservation = findReservationByCode(reservationLookup, normalizedCode);
+    setSearchResult(reservation);
+    setSearchMessage(
+      reservation
+        ? "Reserva encontrada."
+        : "No encontramos una reserva con ese código."
+    );
+  };
+
   const getPassengerText = (passengers: {
     adults: number;
     children: number;
@@ -219,13 +271,50 @@ export default function MyReservationsScreen() {
       </Text>
 
       <View style={styles.structureBadge}>
-        <Ionicons name="git-branch-outline" size={16} color="#1f6ed4" />
+        <Ionicons name="ticket-outline" size={16} color="#1f6ed4" />
         <Text style={styles.structureLabel}>
-          Estructura: Lista enlazada | Reservas activas
+          Reservas activas: {reservationItems.length}
         </Text>
       </View>
 
-      {reservations.length === 0 ? (
+      <View style={styles.searchCard}>
+        <Text style={styles.searchTitle}>Buscar por código de reserva</Text>
+        <View style={styles.searchRow}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Ej. SKY-SAP-MIA-A1B2"
+            placeholderTextColor="#9aa1ae"
+            value={searchCode}
+            onChangeText={(text) => {
+              setSearchCode(text.toUpperCase());
+              setSearchMessage("");
+              setSearchResult(null);
+            }}
+            autoCapitalize="characters"
+          />
+          <TouchableOpacity style={styles.searchButton} onPress={handleSearchReservation}>
+            <Ionicons name="search" size={18} color="#ffffff" />
+          </TouchableOpacity>
+        </View>
+        {searchMessage ? (
+          <Text style={[styles.searchMessage, searchResult && styles.searchMessageSuccess]}>
+            {searchMessage}
+          </Text>
+        ) : null}
+        {searchResult ? (
+          <View style={styles.searchResultCard}>
+            <Text style={styles.searchResultCode}>{searchResult.reservationCode}</Text>
+            <Text style={styles.searchResultText}>
+              {searchResult.origin.split(" (")[0]} → {searchResult.destinationName}
+            </Text>
+            <Text style={styles.searchResultText}>
+              {i18n.t("departure")}: {searchResult.departDate} · ${searchResult.totalPrice}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+
+      {reservationItems.length === 0 ? (
         <View style={styles.emptyCard}>
           <View style={styles.emptyIconWrap}>
             <Ionicons name="airplane-outline" size={36} color="#2d5fb2" />
@@ -238,15 +327,18 @@ export default function MyReservationsScreen() {
           </Text>
         </View>
       ) : (
-        reservations.map((flight) => {
+        reservationItems.map((flight) => {
           const originName = flight.origin.split(" (")[0];
 
           return (
             <View key={flight.id} style={styles.card}>
               <View style={styles.cardHeader}>
-                <Text style={styles.route}>
-                  {originName} ✈ {flight.destinationName}
-                </Text>
+                <View style={styles.routeBlock}>
+                  <Text style={styles.route}>
+                    {originName} ✈ {flight.destinationName}
+                  </Text>
+                  <Text style={styles.reservationCode}>{flight.reservationCode}</Text>
+                </View>
                 <Text style={styles.price}>${flight.totalPrice}</Text>
               </View>
 
@@ -343,6 +435,76 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#1f6ed4",
   },
+  searchCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 22,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  searchTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#1d2533",
+    marginBottom: 10,
+  },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: "#dde2ea",
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    fontSize: 15,
+    color: "#1f2430",
+    backgroundColor: "#ffffff",
+  },
+  searchButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1f6ed4",
+  },
+  searchMessage: {
+    marginTop: 10,
+    fontSize: 14,
+    color: "#8a5a00",
+    fontWeight: "700",
+  },
+  searchMessageSuccess: {
+    color: "#0f7a43",
+  },
+  searchResultCard: {
+    marginTop: 12,
+    borderRadius: 16,
+    padding: 12,
+    backgroundColor: "#f1f8ff",
+    borderWidth: 1,
+    borderColor: "#d7ebff",
+  },
+  searchResultCode: {
+    fontSize: 14,
+    fontWeight: "900",
+    color: "#1f6ed4",
+    marginBottom: 4,
+  },
+  searchResultText: {
+    fontSize: 14,
+    color: "#344054",
+    fontWeight: "600",
+    marginTop: 2,
+  },
   emptyCard: {
     backgroundColor: "#ffffff",
     borderRadius: 28,
@@ -396,12 +558,21 @@ const styles = StyleSheet.create({
     borderBottomColor: "#eff1f5",
     gap: 10,
   },
-  route: {
+  routeBlock: {
     flex: 1,
+    gap: 4,
+  },
+  route: {
     fontSize: 20,
     fontWeight: "800",
     color: "#1d2533",
     lineHeight: 28,
+  },
+  reservationCode: {
+    fontSize: 13,
+    color: "#1f6ed4",
+    fontWeight: "900",
+    letterSpacing: 0.4,
   },
   price: {
     fontSize: 24,
