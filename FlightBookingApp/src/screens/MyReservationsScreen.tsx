@@ -103,6 +103,16 @@ const mapWaitlistRow = (item: WaitlistRow): RealWaitlistEntry => ({
   createdAt: item.created_at,
 });
 
+const getWaitlistStatusLabel = (status: string) => {
+  const normalizedStatus = status.trim().toLowerCase();
+
+  if (normalizedStatus === "pending") return "En espera";
+  if (normalizedStatus === "confirmed") return "Confirmada";
+  if (normalizedStatus === "cancelled") return "Cancelada";
+
+  return status || "En espera";
+};
+
 export default function MyReservationsScreen() {
   const dispatch = useAppDispatch();
 
@@ -520,7 +530,7 @@ export default function MyReservationsScreen() {
                 <Text style={styles.waitlistRoute}>
                   {entry.origin.split(" (")[0]} → {entry.destinationName}
                 </Text>
-                <Text style={styles.waitlistStatus}>{entry.status}</Text>
+                <Text style={styles.waitlistStatus}>{getWaitlistStatusLabel(entry.status)}</Text>
               </View>
               <View style={styles.detailRow}>
                 <Ionicons name="calendar-outline" size={16} color="#7f8796" />
