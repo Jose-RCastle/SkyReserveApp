@@ -299,7 +299,8 @@ export default function MyReservationsScreen() {
               if (reservationToCancel) {
                 pushAction({
                   type: "CANCEL_RESERVATION",
-                  description: `Reserva cancelada: ${reservationToCancel.destinationName}`,
+                  title: "Reserva cancelada",
+                  description: `Reserva cancelada: ${reservationToCancel.origin.split(" (")[0]} → ${reservationToCancel.destinationName}`,
                   payload: reservationToCancel,
                 });
               }

@@ -28,6 +28,7 @@ import {
   RealWaitlistEntry,
 } from "../services/waitlistService";
 import { buildReservationStructures, hasDateConflict } from "../services/reservationIndexService";
+import { pushAction } from "../services/historyService";
 import type { Destination, Origin } from "../types/flight.types";
 
 type OfferCard = Destination & {
@@ -191,6 +192,17 @@ export default function HomeScreen() {
 
     if (!flightSearch.handleSearch(flightSearch.selectedDestination)) return;
 
+    pushAction({
+      type: "SEARCH_ROUTE",
+      title: "Búsqueda realizada",
+      description: `Búsqueda realizada: ${selectedOrigin.code} → ${selectedDestinationCode}`,
+      payload: {
+        origin: selectedOrigin.code,
+        destination: selectedDestinationCode,
+        passengers: totalPassengers,
+      },
+    });
+
     if (!reservationOption?.canReserve) {
       Alert.alert(
         "Sin disponibilidad",
@@ -297,6 +309,16 @@ export default function HomeScreen() {
         user.email,
         waitlistEntry.flight_id
       );
+
+      pushAction({
+        type: "JOIN_WAITLIST",
+        title: "Lista de espera",
+        description: `Lista de espera: ${selectedOrigin.code} → ${destination.id}`,
+        payload: {
+          ...waitlistEntry,
+          position: userPosition,
+        },
+      });
 
       Alert.alert(
         "Lista de espera",
@@ -436,6 +458,13 @@ export default function HomeScreen() {
           reservationDate: reservationData.reservation_date,
         })
       );
+
+      pushAction({
+        type: "CREATE_RESERVATION",
+        title: "Reserva creada",
+        description: `Reserva creada: ${selectedOrigin.code} → ${destination.id}`,
+        payload: reservationData,
+      });
 
       modals.setShowConfirmationModal(false);
       Alert.alert(i18n.t("success"), i18n.t("flightBookedSuccessfully"));
