@@ -16,15 +16,31 @@ import ConfirmationModal from "./ConfirmationModal";
 import OriginModal from "./OriginModal";
 
 import { useAppDispatch } from "../redux/hooks";
-import { addReservation } from "../redux/slices/reservationSlice";
+import { addReservation, Reservation } from "../redux/slices/reservationSlice";
 import { supabase } from "../lib/supabase";
 import i18n from "../i18n";
 import { findRouteBFS, getAirportCatalog, getReachableDestinations } from "../services/routeService";
 import { getReservationOption, searchFlightsByRoute } from "../services/flightSearchService";
+import { buildReservationStructures, hasDateConflict } from "../services/reservationIndexService";
 import type { Destination, Origin } from "../types/flight.types";
 
 type OfferCard = Destination & {
   image: string;
+};
+
+type ReservationRow = {
+  id: string;
+  user_email: string;
+  origin: string;
+  destination: string;
+  destination_name: string;
+  depart_date: string;
+  return_date: string | null;
+  adults: number;
+  children: number;
+  infants: number;
+  total_price: number;
+  reservation_date: string;
 };
 
 const offerImages = [
@@ -220,6 +236,53 @@ export default function HomeScreen() {
         total_price: reservationTotalPrice,
         reservation_date: new Date().toLocaleDateString("es-ES"),
       };
+
+      const { data: existingReservationsData, error: existingReservationsError } =
+        await supabase
+          .from("reservations")
+          .select("*")
+          .eq("user_email", reservationData.user_email);
+
+      if (existingReservationsError) {
+        Alert.alert(
+          i18n.t("unexpectedError"),
+          "No se pudieron validar tus reservas actuales. Intenta de nuevo."
+        );
+        return;
+      }
+
+      const existingReservations: Reservation[] = (
+        (existingReservationsData ?? []) as ReservationRow[]
+      ).map((item) => ({
+        id: item.id,
+        origin: item.origin,
+        destination: item.destination,
+        destinationName: item.destination_name,
+        departDate: item.depart_date,
+        returnDate: item.return_date ?? undefined,
+        passengers: {
+          adults: item.adults,
+          children: item.children,
+          infants: item.infants,
+        },
+        totalPrice: Number(item.total_price),
+        reservationDate: item.reservation_date,
+      }));
+
+      const reservationStructures = buildReservationStructures(existingReservations);
+      const hasConflictingReservation = hasDateConflict(
+        reservationStructures.list,
+        reservationData.depart_date,
+        reservationData.return_date ?? undefined
+      );
+
+      if (hasConflictingReservation) {
+        Alert.alert(
+          "Reserva existente",
+          "Ya tienes una reserva en ese rango de fechas. Revisa tus reservas antes de crear otra."
+        );
+        return;
+      }
 
       const { error: insertError } = await supabase
         .from("reservations")

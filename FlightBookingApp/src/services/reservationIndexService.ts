@@ -24,13 +24,56 @@ function normalizeLookupCode(code: string): string {
   return code.trim().toUpperCase();
 }
 
+function buildValidDate(year: number, month: number, day: number): number | null {
+  if (!year || !month || !day) return null;
+
+  const parsedDate = new Date(year, month - 1, day);
+  parsedDate.setHours(0, 0, 0, 0);
+
+  const isValidDate =
+    parsedDate.getFullYear() === year &&
+    parsedDate.getMonth() === month - 1 &&
+    parsedDate.getDate() === day;
+
+  return isValidDate ? parsedDate.getTime() : null;
+}
+
 function parseReservationDate(value?: string): number | null {
   if (!value) return null;
 
-  const [day, month, year] = value.split("/").map((part) => Number(part));
-  if (!day || !month || !year) return null;
+  const trimmedValue = value.trim();
+  const slashDateParts = trimmedValue.split("/").map((part) => Number(part));
+  const dashDateParts = trimmedValue.split("-").map((part) => Number(part));
 
-  return new Date(year, month - 1, day).getTime();
+  if (slashDateParts.length === 3) {
+    const [day, month, year] = slashDateParts;
+    return buildValidDate(year, month, day);
+  }
+
+  if (dashDateParts.length === 3) {
+    const [year, month, day] = dashDateParts;
+    return buildValidDate(year, month, day);
+  }
+
+  return null;
+}
+
+function normalizeDateRange(start: number, end: number): { start: number; end: number } {
+  return start <= end ? { start, end } : { start: end, end: start };
+}
+
+function rangesOverlap(
+  requestedRange: { start: number; end: number },
+  existingRange: { start: number; end: number }
+): boolean {
+  const requestedStartInsideExisting =
+    requestedRange.start >= existingRange.start && requestedRange.start <= existingRange.end;
+  const requestedEndInsideExisting =
+    requestedRange.end >= existingRange.start && requestedRange.end <= existingRange.end;
+  const requestedWrapsExisting =
+    requestedRange.start <= existingRange.start && requestedRange.end >= existingRange.end;
+
+  return requestedStartInsideExisting || requestedEndInsideExisting || requestedWrapsExisting;
 }
 
 export function generateReservationCode(reservation: Reservation): string {
@@ -81,18 +124,16 @@ export function hasDateConflict(
 
   if (requestedStart === null || requestedEnd === null) return false;
 
-  let hasConflict = false;
-
-  list.traverse((reservation) => {
-    if (hasConflict) return;
-
+  const requestedRange = normalizeDateRange(requestedStart, requestedEnd);
+  const conflictingReservation = list.find((reservation) => {
     const existingStart = parseReservationDate(reservation.departDate);
     const existingEnd = parseReservationDate(reservation.returnDate) ?? existingStart;
 
-    if (existingStart === null || existingEnd === null) return;
+    if (existingStart === null || existingEnd === null) return false;
 
-    hasConflict = requestedStart <= existingEnd && existingStart <= requestedEnd;
+    const existingRange = normalizeDateRange(existingStart, existingEnd);
+    return rangesOverlap(requestedRange, existingRange);
   });
 
-  return hasConflict;
+  return conflictingReservation !== null;
 }
