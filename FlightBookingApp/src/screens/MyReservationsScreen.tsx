@@ -10,7 +10,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppDispatch, useAppSelector } from "../redux/hooks";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { supabase } from "../lib/supabase";
 import { Reservation, setReservations } from "../redux/slices/reservationSlice";
 import { pushAction } from "../services/historyService";
@@ -75,20 +76,25 @@ export default function MyReservationsScreen() {
   const [searchCode, setSearchCode] = useState("");
   const [searchResult, setSearchResult] = useState<ReservationWithCode | null>(null);
   const [searchMessage, setSearchMessage] = useState("");
+  const searchCodeRef = useRef("");
 
   useEffect(() => {
-    loadReservations();
-  }, [userEmail]);
+    searchCodeRef.current = searchCode;
+  }, [searchCode]);
 
-  const loadReservations = async () => {
+  const clearReservationState = useCallback(() => {
+    const emptyStructures = buildReservationStructures([]);
+    setReservationItems(emptyStructures.array);
+    setReservationLookup(emptyStructures.lookup);
+    setSearchResult(null);
+    setSearchMessage("");
+    dispatch(setReservations([]));
+  }, [dispatch]);
+
+  const loadReservations = useCallback(async () => {
     try {
       if (!userEmail) {
-        const emptyStructures = buildReservationStructures([]);
-        setReservationItems(emptyStructures.array);
-        setReservationLookup(emptyStructures.lookup);
-        setSearchResult(null);
-        setSearchMessage("");
-        dispatch(setReservations([]));
+        clearReservationState();
         return;
       }
 
@@ -131,10 +137,10 @@ export default function MyReservationsScreen() {
       setReservationItems(reservationStructures.array);
       setReservationLookup(reservationStructures.lookup);
 
-      if (searchCode) {
+      if (searchCodeRef.current) {
         const updatedSearchResult = findReservationByCode(
           reservationStructures.lookup,
-          searchCode
+          searchCodeRef.current
         );
         setSearchResult(updatedSearchResult);
         setSearchMessage(
@@ -153,7 +159,21 @@ export default function MyReservationsScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [clearReservationState, dispatch, userEmail]);
+
+  useEffect(() => {
+    if (!userEmail) {
+      clearReservationState();
+    }
+  }, [clearReservationState, userEmail]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!userEmail) return;
+
+      loadReservations();
+    }, [loadReservations, userEmail])
+  );
 
   const handleCancelReservation = (reservationId: string) => {
     const reservationToCancel = reservationItems.find(
@@ -286,7 +306,9 @@ export default function MyReservationsScreen() {
             placeholderTextColor="#9aa1ae"
             value={searchCode}
             onChangeText={(text) => {
-              setSearchCode(text.toUpperCase());
+              const normalizedText = text.toUpperCase();
+              searchCodeRef.current = normalizedText;
+              setSearchCode(normalizedText);
               setSearchMessage("");
               setSearchResult(null);
             }}
