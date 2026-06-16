@@ -1,13 +1,7 @@
 import { View, Text, StyleSheet, Modal, TouchableOpacity, FlatList } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import i18n from "../i18n";
-
-type Destination = {
-  id: string;
-  name: string;
-  country: string;
-  basePrice: number;
-};
+import type { Destination } from "../types/flight.types";
 
 type Props = {
   visible: boolean;
@@ -37,6 +31,11 @@ export default function DestinationModal({
           <FlatList
             data={destinations}
             keyExtractor={(item) => item.id}
+            ListEmptyComponent={(
+              <Text style={styles.emptyText}>
+                No hay rutas disponibles desde este origen.
+              </Text>
+            )}
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={styles.destinationItem}
@@ -50,12 +49,18 @@ export default function DestinationModal({
                   <View style={styles.iconCircle}>
                     <Ionicons name="location-outline" size={18} color="#2d5fb2" />
                   </View>
-                  <View>
+                  <View style={styles.destinationTextBlock}>
                     <Text style={styles.destinationName}>{item.name}</Text>
-                    <Text style={styles.destinationCountry}>{item.country}</Text>
+                    <Text style={styles.destinationCountry}>
+                      {item.country} · {item.code ?? item.id}
+                    </Text>
                   </View>
                 </View>
-                <Text style={styles.destinationPrice}>${item.basePrice}</Text>
+                <View style={styles.statusBadge}>
+                  <Text style={styles.statusText}>
+                    {item.availabilityLabel ?? "Ruta disponible"}
+                  </Text>
+                </View>
               </TouchableOpacity>
             )}
           />
@@ -120,6 +125,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  destinationTextBlock: {
+    flex: 1,
+  },
   destinationName: {
     fontSize: 18,
     fontWeight: "600",
@@ -130,9 +138,21 @@ const styles = StyleSheet.create({
     color: "#848b99",
     marginTop: 2,
   },
-  destinationPrice: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#ec0b7b",
+  statusBadge: {
+    backgroundColor: "#fff0f7",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#c40868",
+  },
+  emptyText: {
+    paddingVertical: 24,
+    textAlign: "center",
+    color: "#848b99",
+    fontSize: 15,
   },
 });

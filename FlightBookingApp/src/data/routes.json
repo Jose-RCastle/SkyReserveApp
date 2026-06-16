@@ -1,0 +1,98 @@
+[
+  {
+    "origin": "SAP",
+    "destination": "MIA",
+    "basePrice": 320,
+    "durationMinutes": 150,
+    "distanceKm": 1390,
+    "airline": "SkyRoute Connect"
+  },
+  {
+    "origin": "MIA",
+    "destination": "MAD",
+    "basePrice": 640,
+    "durationMinutes": 515,
+    "distanceKm": 7100,
+    "airline": "Iberia"
+  },
+  {
+    "origin": "SAP",
+    "destination": "PTY",
+    "basePrice": 210,
+    "durationMinutes": 125,
+    "distanceKm": 1090,
+    "airline": "Copa Airlines"
+  },
+  {
+    "origin": "PTY",
+    "destination": "BOG",
+    "basePrice": 190,
+    "durationMinutes": 95,
+    "distanceKm": 755,
+    "airline": "Copa Airlines"
+  },
+  {
+    "origin": "BOG",
+    "destination": "MAD",
+    "basePrice": 620,
+    "durationMinutes": 590,
+    "distanceKm": 8030,
+    "airline": "Avianca"
+  },
+  {
+    "origin": "TGU",
+    "destination": "GUA",
+    "basePrice": 180,
+    "durationMinutes": 80,
+    "distanceKm": 580,
+    "airline": "TAG Airlines"
+  },
+  {
+    "origin": "GUA",
+    "destination": "MEX",
+    "basePrice": 210,
+    "durationMinutes": 125,
+    "distanceKm": 1050,
+    "airline": "Aeroméxico"
+  },
+  {
+    "origin": "MEX",
+    "destination": "MAD",
+    "basePrice": 700,
+    "durationMinutes": 645,
+    "distanceKm": 9070,
+    "airline": "Aeroméxico"
+  },
+  {
+    "origin": "SAP",
+    "destination": "BOG",
+    "basePrice": 300,
+    "durationMinutes": 190,
+    "distanceKm": 1800,
+    "airline": "Avianca"
+  },
+  {
+    "origin": "BOG",
+    "destination": "MIA",
+    "basePrice": 280,
+    "durationMinutes": 220,
+    "distanceKm": 2430,
+    "airline": "Avianca"
+  },
+  {
+    "origin": "TGU",
+    "destination": "SAP",
+    "basePrice": 90,
+    "durationMinutes": 45,
+    "distanceKm": 180,
+    "airline": "SkyRoute Regional"
+  },
+  {
+    "origin": "MIA",
+    "destination": "MEX",
+    "basePrice": 260,
+    "durationMinutes": 210,
+    "distanceKm": 2050,
+    "airline": "American Airlines"
+  }
+]

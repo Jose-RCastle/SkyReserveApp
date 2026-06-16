@@ -1,5 +1,5 @@
 import { View, Text, ScrollView, Alert, Image, StyleSheet, TouchableOpacity } from "react-native";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -16,20 +16,67 @@ import ConfirmationModal from "./ConfirmationModal";
 import OriginModal from "./OriginModal";
 
 import { useAppDispatch } from "../redux/hooks";
-import { addReservation } from "../redux/slices/reservationSlice";
+import { addReservation, Reservation } from "../redux/slices/reservationSlice";
 import { supabase } from "../lib/supabase";
 import i18n from "../i18n";
+import { findRouteBFS, getAirportCatalog, getReachableDestinations } from "../services/routeService";
+import { getReservationOption, searchFlightsByRoute } from "../services/flightSearchService";
+import {
+  buildWaitlistQueue,
+  createWaitlistEntryFromReservationOption,
+  getUserWaitlistPosition,
+  RealWaitlistEntry,
+} from "../services/waitlistService";
+import { buildReservationStructures, hasDateConflict } from "../services/reservationIndexService";
+import { pushAction } from "../services/historyService";
+import type { Destination, Origin } from "../types/flight.types";
 
-
-const flightData = require("../data/flights.json") as any;
-
-type OfferCard = {
-  id: string;
-  name: string;
-  country: string;
-  basePrice: number;
+type OfferCard = Destination & {
   image: string;
 };
+
+type ReservationRow = {
+  id: string;
+  user_email: string;
+  origin: string;
+  destination: string;
+  destination_name: string;
+  depart_date: string;
+  return_date: string | null;
+  adults: number;
+  children: number;
+  infants: number;
+  total_price: number;
+  reservation_date: string;
+};
+
+type WaitlistRow = {
+  id: string;
+  user_email: string;
+  flight_id: string;
+  origin: string;
+  destination: string;
+  destination_name: string;
+  departure_date: string;
+  return_date: string | null;
+  passengers_total: number;
+  status: string;
+  created_at: string | null;
+};
+
+const mapWaitlistRow = (item: WaitlistRow): RealWaitlistEntry => ({
+  id: item.id,
+  userEmail: item.user_email,
+  flightId: item.flight_id,
+  origin: item.origin,
+  destination: item.destination,
+  destinationName: item.destination_name,
+  departureDate: item.departure_date,
+  returnDate: item.return_date,
+  passengersTotal: item.passengers_total,
+  status: item.status,
+  createdAt: item.created_at,
+});
 
 const offerImages = [
   "https://media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/07/b1/fb/10.jpg",
@@ -39,7 +86,8 @@ const offerImages = [
 ];
 
 export default function HomeScreen() {
-  const [selectedOrigin, setSelectedOrigin] = useState(flightData.origins[0]);
+  const airportCatalog = useMemo(() => getAirportCatalog(), []);
+  const [selectedOrigin, setSelectedOrigin] = useState<Origin>(() => airportCatalog[0]);
   const [showOriginModal, setShowOriginModal] = useState(false);
 
   const originLabel = `${selectedOrigin.name} (${selectedOrigin.code})`;
@@ -49,10 +97,64 @@ export default function HomeScreen() {
   const passengers = usePassengers();
   const modals = useModals();
 
-  const offers: OfferCard[] = flightData.destinations.slice(0, 4).map((item: any, index: number) => ({
+  const reachableDestinations = useMemo(
+    () => getReachableDestinations(selectedOrigin.code),
+    [selectedOrigin.code]
+  );
+
+  const offers: OfferCard[] = reachableDestinations.slice(0, 4).map((item, index) => ({
     ...item,
     image: offerImages[index % offerImages.length],
   }));
+
+  const selectedDestinationCode = flightSearch.selectedDestination?.id ?? "";
+  const totalPassengers = passengers.passengers.adults + passengers.passengers.children + passengers.passengers.infants;
+
+  const routeSuggestion = useMemo(() => {
+    if (!selectedDestinationCode) return null;
+    return findRouteBFS(selectedOrigin.code, selectedDestinationCode);
+  }, [selectedOrigin.code, selectedDestinationCode]);
+
+  const priceOrderedFlights = useMemo(() => {
+    if (!selectedDestinationCode) return null;
+    return searchFlightsByRoute(selectedOrigin.code, selectedDestinationCode);
+  }, [selectedOrigin.code, selectedDestinationCode]);
+
+  const reservationOption = useMemo(() => {
+    if (!selectedDestinationCode) return null;
+
+    return getReservationOption(
+      selectedOrigin.code,
+      selectedDestinationCode,
+      routeSuggestion,
+      priceOrderedFlights,
+      totalPassengers
+    );
+  }, [priceOrderedFlights, routeSuggestion, selectedDestinationCode, selectedOrigin.code, totalPassengers]);
+
+  const reservationTotalPrice = reservationOption
+    ? passengers.calculateTotalPrice(reservationOption.basePrice)
+    : 0;
+
+  const reservationPricingLabel = reservationOption?.canReserve
+    ? `Precio base: $${reservationOption.basePrice} | Total pasajeros: $${reservationTotalPrice}`
+    : "Ruta no disponible";
+
+  const reservationFlightSegments = reservationOption?.selectedFlights.map((flight) => ({
+    label: `${flight.origin} → ${flight.destination}`,
+    flightId: flight.id,
+    price: flight.price,
+    availableSeats: flight.availableSeats,
+  }));
+
+  const canJoinWaitlist = Boolean(
+    flightSearch.selectedDestination &&
+    reservationOption &&
+    !reservationOption.canReserve &&
+    (reservationOption.unavailableSegments.length > 0 ||
+      (priceOrderedFlights?.flights.length ?? 0) > 0 ||
+      reservationOption.routePath.length > 1)
+  );
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString("es-ES", {
@@ -88,8 +190,42 @@ export default function HomeScreen() {
   const handleSearch = () => {
     if (!validatePassengers()) return;
 
-    if (flightSearch.handleSearch(flightSearch.selectedDestination)) {
-      modals.setShowConfirmationModal(true);
+    if (!flightSearch.handleSearch(flightSearch.selectedDestination)) return;
+
+    pushAction({
+      type: "SEARCH_ROUTE",
+      title: "Búsqueda realizada",
+      description: `Búsqueda realizada: ${selectedOrigin.code} → ${selectedDestinationCode}`,
+      payload: {
+        origin: selectedOrigin.code,
+        destination: selectedDestinationCode,
+        passengers: totalPassengers,
+      },
+    });
+
+    if (!reservationOption?.canReserve) {
+      Alert.alert(
+        "Sin disponibilidad",
+        reservationOption?.message ?? "Selecciona una ruta con vuelos o conexiones disponibles para reservar."
+      );
+      return;
+    }
+
+    modals.setShowConfirmationModal(true);
+  };
+
+  const handleOriginSelect = (origin: Origin) => {
+    setSelectedOrigin(origin);
+
+    const currentDestination = flightSearch.selectedDestination;
+    if (!currentDestination) return;
+
+    const isStillReachable = getReachableDestinations(origin.code).some(
+      (destination) => destination.id === currentDestination.id
+    );
+
+    if (!isStillReachable) {
+      flightSearch.setSelectedDestination(null);
     }
   };
 
@@ -101,6 +237,103 @@ export default function HomeScreen() {
     );
   };
 
+
+  const handleJoinWaitlist = async () => {
+    try {
+      const destination = flightSearch.selectedDestination;
+
+      if (!destination || !reservationOption || !canJoinWaitlist) {
+        Alert.alert(
+          "Sin disponibilidad",
+          "No hay cupos suficientes para este grupo. Puedes unirte a la lista de espera."
+        );
+        return;
+      }
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError) {
+        Alert.alert(i18n.t("sessionError"), userError.message);
+        return;
+      }
+
+      if (!user?.email) {
+        Alert.alert(
+          i18n.t("sessionNotFound"),
+          "Debes iniciar sesión para unirte a la lista de espera."
+        );
+        return;
+      }
+
+      const waitlistEntry = createWaitlistEntryFromReservationOption({
+        userEmail: user.email,
+        origin: originLabel,
+        destination: destination.id,
+        destinationName: destination.name,
+        departureDate: formatDate(flightSearch.departDate),
+        returnDate:
+          flightSearch.flightType === "roundtrip"
+            ? formatDate(flightSearch.returnDate)
+            : null,
+        totalPassengers,
+        reservationOption,
+      });
+
+      const { error: insertError } = await supabase
+        .from("waitlist")
+        .insert(waitlistEntry);
+
+      if (insertError) {
+        Alert.alert(
+          i18n.t("unexpectedError"),
+          "No se pudo agregar a la lista de espera. Intenta de nuevo."
+        );
+        return;
+      }
+
+      const { data: waitlistData } = await supabase
+        .from("waitlist")
+        .select("*")
+        .eq("flight_id", waitlistEntry.flight_id)
+        .order("created_at", { ascending: true });
+
+      const waitlistEntries: RealWaitlistEntry[] = ((waitlistData ?? []) as WaitlistRow[]).map(
+        mapWaitlistRow
+      );
+      const waitlistQueue = buildWaitlistQueue(waitlistEntries);
+      const userPosition = getUserWaitlistPosition(
+        waitlistQueue,
+        user.email,
+        waitlistEntry.flight_id
+      );
+
+      pushAction({
+        type: "JOIN_WAITLIST",
+        title: "Lista de espera",
+        description: `Lista de espera: ${selectedOrigin.code} → ${destination.id}`,
+        payload: {
+          ...waitlistEntry,
+          position: userPosition,
+        },
+      });
+
+      Alert.alert(
+        "Lista de espera",
+        userPosition
+          ? `Te uniste a la lista de espera. Tu posición actual es ${userPosition}.`
+          : "Te uniste a la lista de espera."
+      );
+    } catch (error: any) {
+      Alert.alert(
+        i18n.t("unexpectedError"),
+        "No se pudo agregar a la lista de espera. Intenta de nuevo."
+      );
+    }
+  };
+
   const handleConfirmReservation = async () => {
     try {
       const destination = flightSearch.selectedDestination;
@@ -109,6 +342,14 @@ export default function HomeScreen() {
         Alert.alert(
           i18n.t("destinationRequired"),
           i18n.t("selectDestinationBeforeBooking")
+        );
+        return;
+      }
+
+      if (!reservationOption?.canReserve) {
+        Alert.alert(
+          "Sin disponibilidad",
+          reservationOption?.message ?? "No se puede completar la reserva porque no hay ruta disponible."
         );
         return;
       }
@@ -144,9 +385,56 @@ export default function HomeScreen() {
         adults: passengers.passengers.adults,
         children: passengers.passengers.children,
         infants: passengers.passengers.infants,
-        total_price: passengers.calculateTotalPrice(destination.basePrice),
+        total_price: reservationTotalPrice,
         reservation_date: new Date().toLocaleDateString("es-ES"),
       };
+
+      const { data: existingReservationsData, error: existingReservationsError } =
+        await supabase
+          .from("reservations")
+          .select("*")
+          .eq("user_email", reservationData.user_email);
+
+      if (existingReservationsError) {
+        Alert.alert(
+          i18n.t("unexpectedError"),
+          "No se pudieron validar tus reservas actuales. Intenta de nuevo."
+        );
+        return;
+      }
+
+      const existingReservations: Reservation[] = (
+        (existingReservationsData ?? []) as ReservationRow[]
+      ).map((item) => ({
+        id: item.id,
+        origin: item.origin,
+        destination: item.destination,
+        destinationName: item.destination_name,
+        departDate: item.depart_date,
+        returnDate: item.return_date ?? undefined,
+        passengers: {
+          adults: item.adults,
+          children: item.children,
+          infants: item.infants,
+        },
+        totalPrice: Number(item.total_price),
+        reservationDate: item.reservation_date,
+      }));
+
+      const reservationStructures = buildReservationStructures(existingReservations);
+      const hasConflictingReservation = hasDateConflict(
+        reservationStructures.list,
+        reservationData.depart_date,
+        reservationData.return_date ?? undefined
+      );
+
+      if (hasConflictingReservation) {
+        Alert.alert(
+          "Reserva existente",
+          "Ya tienes una reserva en ese rango de fechas. Revisa tus reservas antes de crear otra."
+        );
+        return;
+      }
 
       const { error: insertError } = await supabase
         .from("reservations")
@@ -170,6 +458,13 @@ export default function HomeScreen() {
           reservationDate: reservationData.reservation_date,
         })
       );
+
+      pushAction({
+        type: "CREATE_RESERVATION",
+        title: "Reserva creada",
+        description: `Reserva creada: ${selectedOrigin.code} → ${destination.id}`,
+        payload: reservationData,
+      });
 
       modals.setShowConfirmationModal(false);
       Alert.alert(i18n.t("success"), i18n.t("flightBookedSuccessfully"));
@@ -240,6 +535,107 @@ export default function HomeScreen() {
         </View>
       </View>
 
+      {flightSearch.selectedDestination && (
+        <View style={styles.smartCard}>
+          <View style={styles.smartHeader}>
+            <View style={styles.smartIconBox}>
+              <Ionicons name="git-network-outline" size={22} color="#ffffff" />
+            </View>
+            <View style={styles.smartHeaderText}>
+              <Text style={styles.smartTitle}>SkyRoute DS</Text>
+              <Text style={styles.smartSubtitle}>
+                Rutas y precios inteligentes
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.routePill}>
+            <Text style={styles.routePillText}>
+              {selectedOrigin.code} → {selectedDestinationCode}
+            </Text>
+          </View>
+
+          <View style={styles.smartSection}>
+            <Text style={styles.structureTag}>
+              Ruta sugerida
+            </Text>
+            <Text style={styles.smartText} numberOfLines={2}>
+              {routeSuggestion?.message ?? "Selecciona origen y destino para sugerir una ruta."}
+            </Text>
+            <View style={styles.smartMetricRow}>
+              <Text style={styles.smartMetricLabel}>Ruta</Text>
+              <Text style={styles.smartMetricValue}>
+                {routeSuggestion && routeSuggestion.route.length > 0
+                  ? routeSuggestion.route.join(" → ")
+                  : "No disponible"}
+              </Text>
+            </View>
+            <View style={styles.smartMetricRow}>
+              <Text style={styles.smartMetricLabel}>Escalas</Text>
+              <Text style={styles.smartMetricValue}>
+                {routeSuggestion ? routeSuggestion.stops : 0}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.smartSection}>
+            <Text style={styles.structureTag}>
+              Vuelos disponibles
+            </Text>
+            <Text style={styles.smartText} numberOfLines={2}>
+              {reservationOption?.message ?? priceOrderedFlights?.message ?? "Selecciona destino para ordenar vuelos por precio."}
+            </Text>
+            {reservationOption?.canReserve ? (
+              <>
+                <View style={styles.estimatedRouteBox}>
+                  <Text style={styles.smartResult}>
+                    {reservationOption.priceSource === "direct-flight" ? "Vuelo directo disponible" : "Ruta disponible por escalas"}
+                  </Text>
+                  <Text style={styles.estimatedRouteText}>
+                    Precio base: ${reservationOption.basePrice} · Total pasajeros: ${reservationTotalPrice}
+                  </Text>
+                </View>
+                {reservationOption.selectedFlights.map((flight) => (
+                  <View key={flight.id} style={styles.flightInsightRow}>
+                    <View style={styles.flightInsightInfo}>
+                      <Text style={styles.flightInsightId}>
+                        {flight.origin} → {flight.destination} · {flight.id}
+                      </Text>
+                      <Text style={styles.flightInsightSeats}>
+                        Cupos disponibles {flight.availableSeats} · Grupo {totalPassengers}
+                      </Text>
+                    </View>
+                    <Text style={styles.flightInsightPrice}>${flight.price}</Text>
+                  </View>
+                ))}
+              </>
+            ) : (
+              <View style={styles.unavailableBox}>
+                <Text style={styles.smartResult}>Sin disponibilidad para reservar</Text>
+                <Text style={styles.unavailableText}>
+                  {reservationOption?.message ?? "No hay cupos suficientes para este grupo. Puedes intentar con menos pasajeros o revisar la lista de espera."}
+                </Text>
+                {reservationOption?.unavailableSegments.map((segment) => (
+                  <Text key={segment} style={styles.unavailableSegment}>
+                    Sin cupos: {segment}
+                  </Text>
+                ))}
+                {canJoinWaitlist ? (
+                  <TouchableOpacity
+                    style={styles.waitlistButton}
+                    onPress={handleJoinWaitlist}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons name="time-outline" size={17} color="#ffffff" />
+                    <Text style={styles.waitlistButtonText}>Unirme a lista de espera</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            )}
+          </View>
+        </View>
+      )}
+
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>{i18n.t("dailyOffers")}</Text>
         <Text style={styles.sectionSubtitle}>{i18n.t("dailyInspiration")}</Text>
@@ -264,7 +660,7 @@ export default function HomeScreen() {
               </Text>
             </View>
             <Text style={styles.offerPrice}>
-              {i18n.t("roundTripPriceFrom")} ${offer.basePrice}
+              {offer.availabilityLabel ?? "Ruta disponible"}
             </Text>
           </TouchableOpacity>
         ))}
@@ -298,15 +694,15 @@ export default function HomeScreen() {
       <OriginModal
         visible={showOriginModal}
         onClose={() => setShowOriginModal(false)}
-        onSelect={setSelectedOrigin}
-        origins={flightData.origins}
+        onSelect={handleOriginSelect}
+        origins={airportCatalog}
       />
 
       <DestinationModal
         visible={modals.showDestinationModal}
         onClose={() => modals.setShowDestinationModal(false)}
         onSelect={flightSearch.setSelectedDestination}
-        destinations={flightData.destinations}
+        destinations={reachableDestinations}
       />
 
       <PassengerSelector
@@ -331,7 +727,11 @@ export default function HomeScreen() {
                 ? formatDate(flightSearch.returnDate)
                 : undefined,
             passengers: passengers.passengers,
-            totalPrice: passengers.calculateTotalPrice(flightSearch.selectedDestination.basePrice),
+            totalPrice: reservationTotalPrice,
+            routePath: reservationOption?.routePath,
+            pricingLabel: reservationPricingLabel,
+            recommendedFlightId: reservationOption?.recommendedFlight?.id,
+            flightSegments: reservationFlightSegments,
           }}
         />
       )}
@@ -403,6 +803,181 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     marginTop: 6,
+  },
+  smartCard: {
+    backgroundColor: "#ffffff",
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 24,
+    padding: 14,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 3,
+  },
+  smartHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 10,
+  },
+  smartIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: "#1f6ed4",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  smartHeaderText: {
+    flex: 1,
+  },
+  smartTitle: {
+    fontSize: 19,
+    fontWeight: "800",
+    color: "#111827",
+  },
+  smartSubtitle: {
+    fontSize: 13,
+    color: "#636b78",
+    lineHeight: 19,
+  },
+  routePill: {
+    alignSelf: "flex-start",
+    backgroundColor: "#fff0f7",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginBottom: 2,
+  },
+  routePillText: {
+    color: "#c40868",
+    fontWeight: "800",
+    fontSize: 13,
+  },
+  smartSection: {
+    backgroundColor: "#f8fbff",
+    borderRadius: 18,
+    padding: 12,
+    marginTop: 9,
+    borderWidth: 1,
+    borderColor: "#e8f1ff",
+  },
+  structureTag: {
+    alignSelf: "flex-start",
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#1f6ed4",
+    backgroundColor: "#eaf3ff",
+    borderRadius: 999,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    marginBottom: 8,
+  },
+  smartText: {
+    fontSize: 14,
+    color: "#4b5563",
+    lineHeight: 20,
+    marginBottom: 6,
+  },
+  smartMetricRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
+    paddingVertical: 4,
+  },
+  smartMetricLabel: {
+    fontSize: 13,
+    color: "#7b8494",
+    fontWeight: "700",
+  },
+  smartMetricValue: {
+    flex: 1,
+    textAlign: "right",
+    fontSize: 14,
+    color: "#1d2533",
+    fontWeight: "800",
+  },
+  smartResult: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1d2533",
+    marginBottom: 4,
+  },
+  estimatedRouteBox: {
+    backgroundColor: "#fff7fb",
+    borderRadius: 14,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#ffd7ea",
+  },
+  estimatedRouteText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#c40868",
+  },
+  unavailableBox: {
+    backgroundColor: "#fff7ed",
+    borderRadius: 14,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#fed7aa",
+  },
+  unavailableText: {
+    fontSize: 13,
+    color: "#9a3412",
+    lineHeight: 18,
+  },
+  unavailableSegment: {
+    marginTop: 5,
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#c2410c",
+  },
+  waitlistButton: {
+    marginTop: 12,
+    minHeight: 44,
+    borderRadius: 14,
+    backgroundColor: "#1f6ed4",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+  },
+  waitlistButtonText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  flightInsightRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingVertical: 7,
+    borderTopWidth: 1,
+    borderTopColor: "#edf2f7",
+  },
+  flightInsightInfo: {
+    flex: 1,
+  },
+  flightInsightId: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#1d2533",
+  },
+  flightInsightSeats: {
+    marginTop: 2,
+    fontSize: 12,
+    color: "#7b8494",
+  },
+  flightInsightPrice: {
+    color: "#ec0b7b",
+    fontSize: 18,
+    fontWeight: "900",
   },
   sectionHeader: {
     marginTop: 26,
